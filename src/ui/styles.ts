@@ -52,18 +52,18 @@ export const GLOBAL_STYLES = `
     width: 100%;
   }
 
-  /* Header Navbar (Clean, White, Professional) */
+  /* Header Navbar (Exact Logo Dark Green #19563e) */
   .navbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 12px 24px;
-    background: #ffffff;
-    border-bottom: 1px solid var(--border-color);
+    background: #19563e;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     position: sticky;
     top: 0;
     z-index: 50;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   }
 
   .nav-brand {
@@ -91,7 +91,7 @@ export const GLOBAL_STYLES = `
   .nav-brand-title {
     font-size: 20px;
     font-weight: 800;
-    color: var(--alifeo-dark);
+    color: #ffffff;
     letter-spacing: -0.5px;
   }
 
@@ -102,15 +102,15 @@ export const GLOBAL_STYLES = `
   }
 
   .nav-badge-simple {
-    color: #64748b;
+    color: rgba(255, 255, 255, 0.8);
     font-size: 13px;
     font-weight: 600;
   }
 
-  .nav-pill-link {
-    background: #f1f5f9;
-    color: var(--alifeo-dark);
-    border: 1px solid var(--border-color);
+  .nav-pill-white {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
     font-size: 13px;
     font-weight: 600;
     padding: 6px 14px;
@@ -119,11 +119,102 @@ export const GLOBAL_STYLES = `
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    text-decoration: none;
+  }
+
+  .nav-pill-white:hover {
+    background: #ffffff;
+    color: #19563e;
+  }
+
+  .nav-pill-link {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 999px;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
   }
 
   .nav-pill-link:hover {
+    background: #ffffff;
+    color: #19563e;
+  }
+
+  /* Career Promo Card (for Verify Page & Home Page) */
+  .career-promo-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin-top: 24px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .career-promo-content h3 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--alifeo-dark);
+    margin-bottom: 4px;
+  }
+
+  .career-promo-content p {
+    font-size: 13.5px;
+    color: var(--text-body);
+    line-height: 1.5;
+  }
+
+  .career-promo-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn-career-primary {
+    background: #19563e;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 13.5px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+  }
+
+  .btn-career-primary:hover {
+    background: #0d3827;
+  }
+
+  .btn-career-outline {
+    background: #f8fafc;
+    color: var(--text-title);
+    border: 1px solid var(--border-color);
+    font-weight: 600;
+    font-size: 13.5px;
+    padding: 10px 16px;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+
+  .btn-career-outline:hover {
     background: #e2e8f0;
-    border-color: #cbd5e1;
+    color: var(--alifeo-dark);
   }
 
   /* Main Container */

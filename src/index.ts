@@ -1,8 +1,33 @@
-import { Env, Certificate, Template } from './types';
+import { Env, Certificate, Template, JobApplication } from './types';
 import { renderHomePage } from './ui/home';
 import { renderVerifyPage } from './ui/verify';
 import { renderAdminLoginPage, renderAdminDashboard } from './ui/admin';
+import { renderCareersPage } from './ui/careers';
 import { sendCertificateEmail } from './email';
+
+async function ensureApplicationsTable(db: D1Database): Promise<void> {
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS applications (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        role TEXT NOT NULL,
+        type TEXT NOT NULL DEFAULT 'internship',
+        company TEXT NOT NULL DEFAULT 'Alifeo',
+        experience TEXT,
+        portfolio_url TEXT,
+        resume_url TEXT,
+        cover_note TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at INTEGER NOT NULL
+      )
+    `).run();
+  } catch (err) {
+    console.error('ensureApplicationsTable error:', err);
+  }
+}
 
 function isAdminAuthenticated(req: Request, env: Env): boolean {
   const cookie = req.headers.get('Cookie') || '';
@@ -31,6 +56,46 @@ export default {
     if (path === '/' && method === 'GET') {
       const html = renderHomePage(env.APP_URL || url.origin);
       return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
+    // Route: GET /careers or GET /jobs
+    if ((path === '/careers' || path === '/jobs') && method === 'GET') {
+      const html = renderCareersPage(env.APP_URL || url.origin);
+      return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
+    // Route: POST /api/apply (Candidate submits job / internship application)
+    if (path === '/api/apply' && method === 'POST') {
+      try {
+        const body = await request.json() as any;
+        const { name, email, phone, role, type, company, resume_url, cover_note } = body;
+        if (!name || !email || !role) {
+          return new Response(JSON.stringify({ error: 'Name, email, and role are required.' }), { status: 400 });
+        }
+        await ensureApplicationsTable(env.DB);
+        const id = `app_${crypto.randomUUID().slice(0, 8)}`;
+        await env.DB.prepare(`
+          INSERT INTO applications (id, name, email, phone, role, type, company, resume_url, cover_note, status, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+        `).bind(
+          id,
+          String(name).trim(),
+          String(email).trim(),
+          String(phone || '').trim(),
+          String(role).trim(),
+          String(type || 'internship').trim(),
+          String(company || 'Alifeo').trim(),
+          String(resume_url || '').trim(),
+          String(cover_note || '').trim(),
+          Date.now()
+        ).run();
+
+        return new Response(JSON.stringify({ success: true, id }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+      }
     }
 
     // Route: GET /verify/...
@@ -86,20 +151,48 @@ export default {
       }
 
       try {
+        await ensureApplicationsTable(env.DB);
+
         const { results: certRows } = await env.DB.prepare('SELECT * FROM certificates ORDER BY created_at DESC LIMIT 100').all<Certificate>();
         const certs = certRows || [];
 
         const { results: tplRows } = await env.DB.prepare('SELECT * FROM templates ORDER BY is_default DESC, created_at DESC').all<Template>();
         const templates = tplRows || [];
 
+        let applications: JobApplication[] = [];
+        try {
+          const { results: appRows } = await env.DB.prepare('SELECT * FROM applications ORDER BY created_at DESC LIMIT 100').all<JobApplication>();
+          applications = appRows || [];
+        } catch (e) {
+          console.error('Fetch applications error:', e);
+        }
+
         const total = certs.length;
         const verified = certs.filter(c => c.status === 'verified').length;
         const emailsSent = certs.filter(c => c.email_sent === 1).length;
 
-        const html = renderAdminDashboard(certs, templates, { total, verified, emailsSent }, env.APP_URL || url.origin);
+        const html = renderAdminDashboard(certs, templates, { total, verified, emailsSent }, env.APP_URL || url.origin, applications);
         return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       } catch (err: any) {
         return new Response('Database error: ' + err.message, { status: 500 });
+      }
+    }
+
+    // Route: POST /api/admin/applications/:id/status
+    if (path.startsWith('/api/admin/applications/') && path.endsWith('/status') && method === 'POST') {
+      if (!isAdminAuthenticated(request, env)) {
+        return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+      }
+
+      const appId = decodeURIComponent(path.slice(24, -7)).trim();
+      try {
+        const body = await request.json() as any;
+        const status = body.status || 'pending';
+        await ensureApplicationsTable(env.DB);
+        await env.DB.prepare('UPDATE applications SET status = ? WHERE id = ?').bind(status, appId).run();
+        return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ error: err.message }), { status: 500 });
       }
     }
 

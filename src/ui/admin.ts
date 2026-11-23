@@ -1,4 +1,4 @@
-import { Certificate, Template } from '../types';
+import { Certificate, Template, JobApplication } from '../types';
 import { GLOBAL_STYLES } from './styles';
 import { ALIFEO_LOGO_BASE64 } from '../logo-base64';
 import { YAHYA_SIGNATURE_BASE64, KHALID_SIGNATURE_BASE64 } from '../signatures-base64';
@@ -59,7 +59,8 @@ export function renderAdminDashboard(
   certs: Certificate[],
   templates: Template[],
   stats: { total: number; verified: number; emailsSent: number },
-  appUrl: string
+  appUrl: string,
+  applications: JobApplication[] = []
 ): string {
   const certRows = certs.map(c => `
     <tr>
@@ -87,6 +88,50 @@ export function renderAdminDashboard(
       </td>
     </tr>
   `).join('');
+
+  const appRows = applications.map(a => {
+    const dateStr = new Date(a.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const cleanPhone = a.phone ? a.phone.replace(/[^0-9]/g, '') : '';
+    const waUrl = `https://wa.me/${cleanPhone}?text=Hi%20${encodeURIComponent(a.name)},%20this%20is%20Alifeo%20HR%20regarding%20your%20${encodeURIComponent(a.role)}%20application.`;
+    
+    let statusBadge = '<span style="color:#d97706; font-weight:700;">Pending</span>';
+    if (a.status === 'shortlisted') statusBadge = '<span style="color:#2563eb; font-weight:700;">Shortlisted</span>';
+    if (a.status === 'interview') statusBadge = '<span style="color:#7c3aed; font-weight:700;">Interview</span>';
+    if (a.status === 'hired') statusBadge = '<span style="color:#059669; font-weight:700;">Hired ✔</span>';
+    if (a.status === 'rejected') statusBadge = '<span style="color:#dc2626; font-weight:700;">Rejected</span>';
+
+    return `
+      <tr>
+        <td style="font-size: 11.5px; color: #64748b;">${dateStr}</td>
+        <td style="font-weight: 700; color: #0f172a;">${a.name}</td>
+        <td style="font-size: 12px;">
+          <div><a href="mailto:${a.email}" style="color: #2563eb; text-decoration: underline;">${a.email}</a></div>
+          <div style="font-family: monospace; color: #475569; margin-top: 2px;">${a.phone}</div>
+        </td>
+        <td>
+          <div style="font-weight: 700; color: #024a34;">${a.role}</div>
+          <div style="font-size: 11px; color: #64748b;">${(a.type || 'internship').toUpperCase()} • ${a.company || 'Alifeo'}</div>
+          ${a.cover_note ? `<div style="font-size: 11px; color: #64748b; margin-top: 2px; font-style: italic;">"${a.cover_note}"</div>` : ''}
+        </td>
+        <td>
+          ${a.resume_url ? `<a href="${a.resume_url}" target="_blank" class="table-btn table-btn-view" style="font-size: 11px;">View Resume ↗</a>` : '<span style="color:#94a3b8; font-size:11px;">No link</span>'}
+        </td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+            ${cleanPhone ? `<a href="${waUrl}" target="_blank" class="table-btn" style="background: #25D366; color: #ffffff; text-decoration: none; font-size: 11px; padding: 4px 8px; border-radius: 6px;">WhatsApp</a>` : ''}
+            <select onchange="updateAppStatus('${a.id}', this.value)" style="font-size: 11px; padding: 3px 6px; border-radius: 6px; border: 1px solid #cbd5e1; background: #ffffff;">
+              <option value="pending" ${a.status === 'pending' ? 'selected' : ''}>Pending</option>
+              <option value="shortlisted" ${a.status === 'shortlisted' ? 'selected' : ''}>Shortlist</option>
+              <option value="interview" ${a.status === 'interview' ? 'selected' : ''}>Interview</option>
+              <option value="hired" ${a.status === 'hired' ? 'selected' : ''}>Hire</option>
+              <option value="rejected" ${a.status === 'rejected' ? 'selected' : ''}>Reject</option>
+            </select>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -274,7 +319,11 @@ export function renderAdminDashboard(
         <div style="font-size: 28px; font-weight: 800; color: #2563eb; margin-top: 4px;">${stats.emailsSent}</div>
       </div>
       <div class="admin-card" style="padding: 18px 20px;">
-        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">HR Sender Address</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Applications Received</div>
+        <div style="font-size: 28px; font-weight: 800; color: #d97706; margin-top: 4px;">${applications.length}</div>
+      </div>
+      <div class="admin-card" style="padding: 18px 20px;">
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">HR Contact</div>
         <div style="font-size: 15px; font-weight: 700; color: var(--alifeo-green-dark); margin-top: 8px;">hr@alifeo.com</div>
       </div>
     </div>
@@ -282,6 +331,7 @@ export function renderAdminDashboard(
     <!-- Navigation Tabs -->
     <div class="admin-nav-tabs">
       <button class="admin-tab-btn active" id="tabBtnIssue" onclick="switchTab('issue')">✨ Issue Certificate</button>
+      <button class="admin-tab-btn" id="tabBtnApplications" onclick="switchTab('applications')">📋 Job & Internship Applications (${applications.length})</button>
       <button class="admin-tab-btn" id="tabBtnTemplates" onclick="switchTab('templates')">🎨 Certificate Templates & Canvas Editor (${templates.length})</button>
       <button class="admin-tab-btn" id="tabBtnBulk" onclick="switchTab('bulk')">📦 Bulk Generation</button>
     </div>
@@ -417,6 +467,42 @@ export function renderAdminDashboard(
               </table>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Job & Internship Applications -->
+    <div id="tabContentApplications" style="display: none;">
+      <div class="admin-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h2 class="admin-card-title">
+              <span>📋</span> Applications Received (${applications.length})
+            </h2>
+            <p class="admin-card-desc" style="margin-bottom: 0;">Applications for Alifeo, Zifeeo, and Aabeeo submitted via Careers portal</p>
+          </div>
+          <div>
+            <a href="/careers" target="_blank" class="table-btn table-btn-view" style="padding: 7px 14px; text-decoration: none;">View Live Careers Page ↗</a>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Candidate</th>
+                <th>Contact</th>
+                <th>Role & Venture</th>
+                <th>Resume</th>
+                <th>Status</th>
+                <th>Quick Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${appRows.length > 0 ? appRows : '<tr><td colspan="7" style="text-align: center; color: #94a3b8; padding: 30px;">No applications received yet. Active openings are live at /careers!</td></tr>'}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1055,12 +1141,32 @@ export function renderAdminDashboard(
     // Tab Switching
     function switchTab(tab) {
       document.getElementById('tabContentIssue').style.display = tab === 'issue' ? 'block' : 'none';
+      document.getElementById('tabContentApplications').style.display = tab === 'applications' ? 'block' : 'none';
       document.getElementById('tabContentTemplates').style.display = tab === 'templates' ? 'block' : 'none';
       document.getElementById('tabContentBulk').style.display = tab === 'bulk' ? 'block' : 'none';
 
       document.getElementById('tabBtnIssue').classList.toggle('active', tab === 'issue');
+      document.getElementById('tabBtnApplications').classList.toggle('active', tab === 'applications');
       document.getElementById('tabBtnTemplates').classList.toggle('active', tab === 'templates');
       document.getElementById('tabBtnBulk').classList.toggle('active', tab === 'bulk');
+    }
+
+    async function updateAppStatus(id, status) {
+      try {
+        const res = await fetch('/api/admin/applications/' + encodeURIComponent(id) + '/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (data.success) {
+          location.reload();
+        } else {
+          alert('Error updating application: ' + (data.error || 'Unknown error'));
+        }
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
     }
 
     function updateTemplatePreview() {

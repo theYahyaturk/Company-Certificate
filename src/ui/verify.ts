@@ -26,7 +26,8 @@ export async function renderVerifyPage(cert: Certificate | null, certId: string,
       </a>
     </div>
     <div class="nav-links">
-      <a href="/" class="nav-pill-link">
+      <a href="/careers" class="nav-pill-white">Apply for Roles</a>
+      <a href="/" class="nav-pill-white">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         <span>Verify Another</span>
       </a>
@@ -67,7 +68,7 @@ export async function renderVerifyPage(cert: Certificate | null, certId: string,
     </div>
 
     <div>
-      <a href="/" class="nav-pill-link" style="display: inline-flex; padding: 10px 20px;">
+      <a href="/" class="nav-pill-white" style="display: inline-flex; padding: 10px 20px; background: #19563e; color: #ffffff;">
         ← Back to Verification
       </a>
     </div>
@@ -129,7 +130,7 @@ export async function renderVerifyPage(cert: Certificate | null, certId: string,
 <body>
   <div class="top-brand-bar"></div>
 
-  <!-- Header Navbar -->
+  <!-- Header Navbar with Logo Dark Green -->
   <header class="navbar">
     <div class="nav-brand">
       <a href="/" class="nav-logo-box">
@@ -138,7 +139,8 @@ export async function renderVerifyPage(cert: Certificate | null, certId: string,
       </a>
     </div>
     <div class="nav-links">
-      <a href="/" class="nav-pill-link">
+      <a href="/careers" class="nav-pill-white">Apply for Roles</a>
+      <a href="/" class="nav-pill-white">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
         <span>Verify Another</span>
       </a>
@@ -236,6 +238,19 @@ export async function renderVerifyPage(cert: Certificate | null, certId: string,
       <div class="meta-col">
         <span class="meta-label">Credential ID</span>
         <span class="meta-val" style="font-family: monospace; color: var(--alifeo-dark);">${cert.id}</span>
+      </div>
+    </div>
+
+    <!-- 4. Career Opportunities Invite Card -->
+    <div class="career-promo-card">
+      <div class="career-promo-content">
+        <span class="badge-dept" style="margin-bottom: 6px; display: inline-block;">We're Hiring</span>
+        <h3>Want to work at Alifeo or partner ventures?</h3>
+        <p>Explore internships and full-time opportunities across Engineering, Design, Product, and Marketing for Alifeo, Zifeeo, and Aabeeo.</p>
+      </div>
+      <div class="career-promo-actions">
+        <a href="/careers" class="btn-career-primary">View Roles & Apply</a>
+        <a href="mailto:hr@alifeo.com?subject=Application%20for%20Internship/Job" class="btn-career-outline">Email hr@alifeo.com</a>
       </div>
     </div>
 

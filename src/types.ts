@@ -42,6 +42,22 @@ export interface Template {
   created_at: number;
 }
 
+export interface JobApplication {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  type: 'internship' | 'job';
+  company: string;
+  experience?: string;
+  portfolio_url?: string;
+  resume_url?: string;
+  cover_note?: string;
+  status: 'pending' | 'reviewed' | 'shortlisted' | 'interview' | 'hired' | 'rejected';
+  created_at: number;
+}
+
 export interface Env {
   DB: D1Database;
   MAIL_DB?: D1Database;
