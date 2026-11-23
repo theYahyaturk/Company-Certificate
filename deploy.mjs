@@ -144,6 +144,6 @@ async function main() {
 }
 
 main().catch(err => {
-  error(`Deployment error: ${err.message}`);
+  error(`Deployment error: ${err.message} (${err.cause || ''})`);
   process.exit(1);
 });

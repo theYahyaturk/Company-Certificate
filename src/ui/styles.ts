@@ -3,14 +3,12 @@ export const GLOBAL_STYLES = `
 
   :root {
     --alifeo-dark: #013824;
-    --alifeo-dark-rgb: 1, 56, 36;
     --alifeo-green-dark: #024a34;
     --alifeo-green: #035e41;
     --alifeo-green-hover: #02432e;
     --alifeo-emerald: #059669;
     --alifeo-light-green: #ecfdf5;
     --alifeo-border-green: #a7f3d0;
-    --alifeo-mint: #d1fae5;
     --gold: #d97706;
     --gold-light: #fef3c7;
     
@@ -54,25 +52,24 @@ export const GLOBAL_STYLES = `
     width: 100%;
   }
 
-  /* Header Navbar (Matching app.alifeo.com signature forest green) */
+  /* Header Navbar (Clean, White, Professional) */
   .navbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 28px;
-    background: linear-gradient(135deg, #013824 0%, #024a34 50%, #035e41 100%);
-    color: #ffffff;
+    padding: 12px 24px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
     z-index: 50;
-    box-shadow: 0 4px 16px rgba(1, 56, 36, 0.15);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   }
 
   .nav-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .nav-logo-box {
@@ -82,229 +79,134 @@ export const GLOBAL_STYLES = `
     text-decoration: none;
   }
 
+  /* Original Logo (Untouched, No Color Filters) */
   .nav-logo {
-    height: 36px;
-    max-width: 130px;
-    object-fit: contain;
-    filter: brightness(0) invert(1); /* Clean white logo on deep green header */
+    height: 32px;
+    width: 32px;
+    border-radius: 6px;
+    object-fit: cover;
+    display: block;
   }
 
-  .nav-badge {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: 999px;
-    letter-spacing: 0.4px;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    backdrop-filter: blur(4px);
-  }
-
-  .nav-badge-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #34d399;
-    box-shadow: 0 0 8px #34d399;
+  .nav-brand-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--alifeo-dark);
+    letter-spacing: -0.5px;
   }
 
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+  }
+
+  .nav-badge-simple {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
   }
 
   .nav-pill-link {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #ffffff;
+    background: #f1f5f9;
+    color: var(--alifeo-dark);
+    border: 1px solid var(--border-color);
     font-size: 13px;
     font-weight: 600;
-    padding: 7px 16px;
+    padding: 6px 14px;
     border-radius: 999px;
-    transition: all 0.2s;
+    transition: all 0.15s;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    text-decoration: none;
   }
 
   .nav-pill-link:hover {
-    background: rgba(255, 255, 255, 0.22);
-    border-color: rgba(255, 255, 255, 0.4);
-    transform: translateY(-1px);
-    color: #ffffff;
-  }
-
-  .nav-pill-link-secondary {
-    background: transparent;
-    border: 1px solid transparent;
-    color: #e2e8f0;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 999px;
-    transition: all 0.2s;
-  }
-
-  .nav-pill-link-secondary:hover {
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .btn-admin {
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    color: #ffffff;
-    padding: 7px 14px;
-    border-radius: 999px;
-    font-size: 12.5px;
-    font-weight: 600;
-    transition: all 0.2s;
-  }
-
-  .btn-admin:hover {
-    background: #ffffff;
-    color: var(--alifeo-dark);
-  }
-
-  .btn-logout {
-    background: #fee2e2;
-    border: 1px solid #fecaca;
-    color: #b91c1c;
-    padding: 7px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .btn-logout:hover {
-    background: #fca5a5;
+    background: #e2e8f0;
+    border-color: #cbd5e1;
   }
 
   /* Main Container */
   .main-content {
     flex: 1;
-    padding: 24px 20px 48px;
-    max-width: 1180px;
+    padding: 24px 16px 48px;
+    max-width: 1120px;
     margin: 0 auto;
     width: 100%;
   }
 
   /* ===================================================
-     HOME PAGE HERO & CARDS (Matching app.alifeo.com style)
+     CLEAN MINIMALIST HOME HERO
      =================================================== */
-  .brand-hero-section {
-    background: linear-gradient(145deg, #013824 0%, #024a34 50%, #035e41 100%);
-    border-radius: 24px;
-    padding: 44px 32px 48px;
-    color: #ffffff;
+  .verify-hero-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     text-align: center;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 16px 36px -10px rgba(1, 56, 36, 0.35);
-    margin-bottom: 36px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 60px 16px 80px;
+    max-width: 620px;
+    margin: 0 auto;
   }
 
-  .hero-glow-circle {
-    position: absolute;
-    width: 380px;
-    height: 380px;
-    background: radial-gradient(circle, rgba(52, 211, 153, 0.18) 0%, transparent 70%);
-    top: -120px;
-    right: -100px;
-    pointer-events: none;
-  }
-
-  .hero-glow-circle-left {
-    position: absolute;
-    width: 320px;
-    height: 320px;
-    background: radial-gradient(circle, rgba(16, 185, 129, 0.14) 0%, transparent 70%);
-    bottom: -100px;
-    left: -80px;
-    pointer-events: none;
-  }
-
-  .hero-pill-badge {
+  .verify-badge-pill {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    color: #a7f3d0;
+    gap: 6px;
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
     font-size: 12px;
     font-weight: 700;
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 999px;
-    margin-bottom: 18px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    backdrop-filter: blur(8px);
+    margin-bottom: 16px;
   }
 
-  .hero-title {
-    font-size: 38px;
+  .verify-title {
+    font-size: 36px;
     font-weight: 800;
-    letter-spacing: -0.8px;
+    color: var(--alifeo-dark);
+    letter-spacing: -0.6px;
+    margin-bottom: 10px;
     line-height: 1.2;
-    margin-bottom: 14px;
-    color: #ffffff;
-    max-width: 760px;
-    margin-left: auto;
-    margin-right: auto;
   }
 
-  .hero-title span {
-    background: linear-gradient(90deg, #6ee7b7, #a7f3d0);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .hero-subtitle {
-    color: #d1fae5;
-    font-size: 15.5px;
+  .verify-subtitle {
+    color: #64748b;
+    font-size: 15px;
     line-height: 1.6;
-    margin: 0 auto 32px;
-    max-width: 620px;
-    font-weight: 400;
+    margin-bottom: 28px;
+    max-width: 480px;
   }
 
-  /* App-style Search Box (Rounded Pill like app.alifeo.com search bar) */
-  .search-card-hero {
+  .search-card-clean {
     background: #ffffff;
+    border: 1.5px solid var(--border-color);
     border-radius: 999px;
-    padding: 6px 8px 6px 20px;
+    padding: 6px 8px 6px 18px;
     display: flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
-    max-width: 580px;
-    margin: 0 auto;
-    border: 2px solid transparent;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+    width: 100%;
+    max-width: 520px;
     transition: all 0.2s ease;
   }
 
-  .search-card-hero:focus-within {
-    border-color: #34d399;
-    box-shadow: 0 14px 38px rgba(0, 0, 0, 0.28), 0 0 0 4px rgba(52, 211, 153, 0.25);
+  .search-card-clean:focus-within {
+    border-color: #059669;
+    box-shadow: 0 12px 28px -5px rgba(5, 150, 105, 0.12), 0 0 0 3px rgba(167, 243, 208, 0.4);
   }
 
   .search-icon-svg {
-    width: 20px;
-    height: 20px;
-    color: #64748b;
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
     flex-shrink: 0;
   }
 
-  .search-input-hero {
+  .search-input-clean {
     flex: 1;
     background: transparent;
     border: none;
@@ -312,263 +214,43 @@ export const GLOBAL_STYLES = `
     color: #0f172a;
     font-size: 15px;
     font-weight: 600;
-    padding: 10px 4px;
+    padding: 8px 0;
     font-family: inherit;
   }
 
-  .search-input-hero::placeholder {
+  .search-input-clean::placeholder {
     color: #94a3b8;
-    font-weight: 500;
+    font-weight: 400;
   }
 
-  .btn-search-hero {
+  .btn-verify-clean {
     background: linear-gradient(135deg, #013824 0%, #035e41 100%);
     border: none;
     color: #ffffff;
     font-weight: 700;
     font-size: 14px;
-    padding: 12px 26px;
+    padding: 11px 24px;
     border-radius: 999px;
     cursor: pointer;
     transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-    box-shadow: 0 4px 12px rgba(1, 56, 36, 0.3);
+    font-family: inherit;
+    box-shadow: 0 2px 8px rgba(1, 56, 36, 0.2);
   }
 
-  .btn-search-hero:hover {
+  .btn-verify-clean:hover {
     background: linear-gradient(135deg, #024a34 0%, #059669 100%);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(1, 56, 36, 0.4);
   }
 
-  .hero-helper-text {
-    margin-top: 14px;
+  .search-hint-text {
     font-size: 12px;
-    color: #a7f3d0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+    color: #94a3b8;
+    margin-top: 14px;
     font-weight: 500;
   }
 
-  /* Promotion Banner (Like FirstOrder coupon banner on app.alifeo.com) */
-  .brand-announcement-card {
-    background: linear-gradient(135deg, #024a34 0%, #013824 100%);
-    border: 1px solid #059669;
-    border-radius: 16px;
-    padding: 16px 24px;
-    margin-bottom: 32px;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
-    box-shadow: 0 6px 18px rgba(1, 56, 36, 0.12);
-  }
-
-  .announcement-left {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-
-  .announcement-badge {
-    background: #d97706;
-    color: #ffffff;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 6px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-  }
-
-  .announcement-text {
-    font-size: 14px;
-    font-weight: 600;
-    color: #f8fafc;
-  }
-
-  .announcement-text strong {
-    color: #34d399;
-  }
-
-  .announcement-btn {
-    background: #ffffff;
-    color: var(--alifeo-dark);
-    font-size: 12.5px;
-    font-weight: 700;
-    padding: 8px 18px;
-    border-radius: 999px;
-    border: none;
-    cursor: pointer;
-    transition: all 0.15s;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .announcement-btn:hover {
-    background: #ecfdf5;
-    transform: translateY(-1px);
-  }
-
-  /* 3-Column Features Grid */
-  .section-heading-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-
-  .section-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--alifeo-dark);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .section-link {
-    font-size: 13.5px;
-    font-weight: 700;
-    color: var(--alifeo-green);
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .section-link:hover {
-    color: var(--alifeo-dark);
-    text-decoration: underline;
-  }
-
-  .features-grid-brand {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    margin-bottom: 36px;
-  }
-
-  .feature-card-brand {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 24px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    transition: all 0.25s ease;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .feature-card-brand:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 24px rgba(1, 56, 36, 0.08);
-    border-color: var(--alifeo-border-green);
-  }
-
-  .feature-card-brand::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #013824, #10b981);
-    opacity: 0;
-    transition: opacity 0.25s;
-  }
-
-  .feature-card-brand:hover::before {
-    opacity: 1;
-  }
-
-  .feature-icon-wrapper {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--alifeo-green-dark);
-    margin-bottom: 16px;
-  }
-
-  .feature-title-brand {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--alifeo-dark);
-    margin-bottom: 8px;
-  }
-
-  .feature-desc-brand {
-    color: var(--text-muted);
-    font-size: 13.5px;
-    line-height: 1.6;
-  }
-
-  /* How to Verify Steps Card */
-  .guide-card-brand {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 28px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    margin-bottom: 36px;
-  }
-
-  .guide-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-    margin-top: 20px;
-  }
-
-  .guide-step {
-    display: flex;
-    gap: 14px;
-  }
-
-  .step-num {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: var(--alifeo-dark);
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .step-content h4 {
-    font-size: 14.5px;
-    font-weight: 700;
-    color: var(--alifeo-dark);
-    margin-bottom: 4px;
-  }
-
-  .step-content p {
-    font-size: 12.5px;
-    color: var(--text-muted);
-    line-height: 1.5;
-  }
-
   /* ===================================================
-     VERIFY PAGE LAYOUT (CERTIFICATE FIRST DESIGN)
+     VERIFY PAGE LAYOUT (CERTIFICATE FIRST)
      =================================================== */
   .verify-top-badge-bar {
     display: flex;
@@ -582,25 +264,24 @@ export const GLOBAL_STYLES = `
   .status-badge-verified {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     background: #ecfdf5;
     border: 1px solid #a7f3d0;
     color: #065f46;
-    padding: 8px 18px;
+    padding: 7px 16px;
     border-radius: 999px;
     font-weight: 700;
     font-size: 13.5px;
-    box-shadow: 0 2px 6px rgba(5, 150, 105, 0.08);
   }
 
   .status-badge-revoked {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 7px;
     background: #fee2e2;
     border: 1px solid #fecaca;
     color: #991b1b;
-    padding: 8px 18px;
+    padding: 7px 16px;
     border-radius: 999px;
     font-weight: 700;
     font-size: 13.5px;
@@ -614,7 +295,8 @@ export const GLOBAL_STYLES = `
 
   .view-mode-buttons {
     display: inline-flex;
-    background: #e2e8f0;
+    background: #f1f5f9;
+    border: 1px solid var(--border-color);
     border-radius: 999px;
     padding: 3px;
     gap: 2px;
@@ -626,7 +308,7 @@ export const GLOBAL_STYLES = `
     padding: 5px 14px;
     font-size: 12px;
     font-weight: 600;
-    color: #475569;
+    color: #64748b;
     border-radius: 999px;
     cursor: pointer;
     transition: all 0.15s;
@@ -640,17 +322,17 @@ export const GLOBAL_STYLES = `
     background: #ffffff;
     color: var(--alifeo-dark);
     font-weight: 700;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
   /* Certificate Preview Stage */
   .certificate-stage-wrapper {
     background: #ffffff;
     border: 1px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: 18px;
     padding: 16px;
-    box-shadow: 0 12px 36px -8px rgba(1, 56, 36, 0.12);
-    margin-bottom: 24px;
+    box-shadow: 0 8px 30px -6px rgba(0, 0, 0, 0.06);
+    margin-bottom: 20px;
     position: relative;
   }
 
@@ -664,7 +346,7 @@ export const GLOBAL_STYLES = `
     position: relative;
     overflow: hidden;
     box-sizing: border-box;
-    border-radius: 12px;
+    border-radius: 10px;
   }
 
   .certificate-scaler {
@@ -690,17 +372,17 @@ export const GLOBAL_STYLES = `
     box-sizing: border-box;
     overflow: hidden;
     user-select: none;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   }
 
   /* Action Buttons Box (Directly below Certificate) */
   .cert-actions-card {
     background: #ffffff;
     border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 20px 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   }
 
   .cert-btn-group-grid {
@@ -714,8 +396,8 @@ export const GLOBAL_STYLES = `
     color: #ffffff;
     font-weight: 700;
     font-size: 14px;
-    padding: 13px 20px;
-    border-radius: 12px;
+    padding: 12px 18px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
     display: inline-flex;
@@ -723,14 +405,13 @@ export const GLOBAL_STYLES = `
     justify-content: center;
     gap: 8px;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(1, 56, 36, 0.25);
     font-family: inherit;
+    box-shadow: 0 2px 8px rgba(1, 56, 36, 0.2);
   }
 
   .btn-download-primary:hover {
     background: linear-gradient(135deg, #024a34 0%, #059669 100%);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(1, 56, 36, 0.35);
   }
 
   .btn-linkedin-action {
@@ -738,8 +419,8 @@ export const GLOBAL_STYLES = `
     color: #ffffff;
     font-weight: 700;
     font-size: 14px;
-    padding: 13px 18px;
-    border-radius: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
     border: none;
     cursor: pointer;
     display: inline-flex;
@@ -747,14 +428,12 @@ export const GLOBAL_STYLES = `
     justify-content: center;
     gap: 8px;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(10, 102, 194, 0.2);
     font-family: inherit;
   }
 
   .btn-linkedin-action:hover {
     background-color: #084e96;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(10, 102, 194, 0.3);
   }
 
   .btn-outline-action {
@@ -763,20 +442,19 @@ export const GLOBAL_STYLES = `
     border: 1px solid var(--border-color);
     font-weight: 600;
     font-size: 13.5px;
-    padding: 13px 16px;
-    border-radius: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    transition: all 0.2s;
+    transition: all 0.15s;
     font-family: inherit;
   }
 
   .btn-outline-action:hover {
     background: #e2e8f0;
-    border-color: #cbd5e1;
     color: var(--alifeo-dark);
   }
 
@@ -784,19 +462,19 @@ export const GLOBAL_STYLES = `
   .candidate-meta-card {
     background: #ffffff;
     border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 24px;
-    margin-bottom: 24px;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-    gap: 20px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   }
 
   .meta-col {
     display: flex;
     flex-direction: column;
-    gap: 5px;
+    gap: 4px;
   }
 
   .meta-label {
@@ -808,7 +486,7 @@ export const GLOBAL_STYLES = `
   }
 
   .meta-val {
-    font-size: 15.5px;
+    font-size: 15px;
     color: var(--text-title);
     font-weight: 700;
   }
@@ -818,107 +496,21 @@ export const GLOBAL_STYLES = `
     font-weight: 800;
   }
 
-  /* Authenticity & Program Guarantee Card */
-  .authenticity-guarantee-card {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-radius: 18px;
-    padding: 22px 24px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-  }
-
-  .guarantee-left {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-
-  .guarantee-icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    background: #ecfdf5;
-    border: 1px solid #a7f3d0;
-    color: var(--alifeo-green-dark);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .guarantee-info h4 {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--alifeo-dark);
-    margin-bottom: 3px;
-  }
-
-  .guarantee-info p {
-    font-size: 13px;
-    color: var(--text-muted);
-  }
-
-  .guarantee-badge {
-    background: #f1f5f9;
-    border: 1px solid var(--border-color);
-    padding: 8px 16px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--alifeo-dark);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-
   /* Footer */
   .footer {
     border-top: 1px solid var(--border-color);
-    padding: 26px 20px;
+    padding: 22px 16px;
     text-align: center;
-    color: var(--text-muted);
+    color: #94a3b8;
     font-size: 13px;
     background: #ffffff;
     margin-top: auto;
   }
 
-  .footer-links {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 18px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-  }
-
-  .footer-link-item {
-    color: var(--text-muted);
-    font-weight: 600;
-    transition: color 0.2s;
-  }
-
-  .footer-link-item:hover {
-    color: var(--alifeo-green);
-  }
-
   /* ===================================================
-     MOBILE RESPONSIVENESS (SUPER POLISHED FOR SMARTPHONES)
+     MOBILE RESPONSIVENESS
      =================================================== */
   @media (max-width: 860px) {
-    .features-grid-brand {
-      grid-template-columns: 1fr;
-    }
-
-    .guide-grid {
-      grid-template-columns: 1fr;
-    }
-
     .cert-btn-group-grid {
       grid-template-columns: 1fr 1fr;
     }
@@ -926,77 +518,54 @@ export const GLOBAL_STYLES = `
 
   @media (max-width: 640px) {
     .navbar {
-      padding: 12px 16px;
+      padding: 10px 16px;
     }
 
     .nav-logo {
       height: 28px;
-      max-width: 95px;
+      width: 28px;
     }
 
-    .nav-badge {
-      font-size: 9.5px;
-      padding: 3px 8px;
-    }
-
-    .nav-pill-link {
-      font-size: 11.5px;
-      padding: 5px 12px;
+    .nav-brand-title {
+      font-size: 18px;
     }
 
     .main-content {
-      padding: 16px 12px 36px;
+      padding: 16px 12px 32px;
     }
 
-    .brand-hero-section {
-      padding: 28px 16px 32px;
-      border-radius: 18px;
-      margin-bottom: 24px;
+    .verify-hero-container {
+      padding: 36px 12px 50px;
     }
 
-    .hero-title {
-      font-size: 24px;
-      letter-spacing: -0.4px;
+    .verify-title {
+      font-size: 26px;
     }
 
-    .hero-subtitle {
+    .verify-subtitle {
       font-size: 13.5px;
       margin-bottom: 22px;
     }
 
-    .search-card-hero {
+    .search-card-clean {
       padding: 5px 6px 5px 14px;
-      border-radius: 999px;
     }
 
-    .search-input-hero {
-      font-size: 13.5px;
-      padding: 8px 2px;
-    }
-
-    .btn-search-hero {
-      font-size: 13px;
+    .btn-verify-clean {
       padding: 10px 18px;
-    }
-
-    .brand-announcement-card {
-      padding: 14px 16px;
-      border-radius: 14px;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
+      font-size: 13px;
     }
 
     .certificate-stage-wrapper {
-      padding: 10px 8px;
-      border-radius: 16px;
-      margin-bottom: 16px;
+      padding: 10px 6px;
+      border-radius: 14px;
+      margin-bottom: 14px;
     }
 
     .cert-actions-card {
-      padding: 16px;
-      border-radius: 16px;
-      margin-bottom: 16px;
+      padding: 14px;
+      border-radius: 14px;
+      margin-bottom: 14px;
     }
 
     .cert-btn-group-grid {
@@ -1006,28 +575,19 @@ export const GLOBAL_STYLES = `
 
     .btn-download-primary, .btn-linkedin-action, .btn-outline-action {
       width: 100%;
-      padding: 13px;
-      font-size: 14px;
+      padding: 12px;
+      font-size: 13.5px;
     }
 
     .candidate-meta-card {
       grid-template-columns: 1fr 1fr;
       padding: 16px;
       gap: 12px;
-      border-radius: 16px;
-      margin-bottom: 16px;
+      border-radius: 14px;
     }
 
     .meta-val {
       font-size: 13.5px;
-    }
-
-    .authenticity-guarantee-card {
-      padding: 16px;
-      border-radius: 16px;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
     }
   }
 
@@ -1037,67 +597,13 @@ export const GLOBAL_STYLES = `
     }
   }
 
-  /* ===================================================
-     ADMIN DASHBOARD & FORM STYLES
-     =================================================== */
-  .admin-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-
-  @media (min-width: 960px) {
-    .admin-grid {
-      grid-template-columns: 460px 1fr;
-    }
-  }
-
+  /* Admin Styles */
   .admin-card {
     background: #ffffff;
     border: 1px solid var(--border-color);
     border-radius: 16px;
     padding: 24px;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
-  }
-
-  .admin-card-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--alifeo-dark);
-    margin-bottom: 4px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .admin-card-desc {
-    font-size: 13px;
-    color: var(--text-muted);
-    margin-bottom: 20px;
-  }
-
-  .admin-nav-tabs {
-    display: flex;
-    gap: 8px;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 20px;
-  }
-
-  .admin-tab-btn {
-    padding: 10px 16px;
-    font-size: 13.5px;
-    font-weight: 600;
-    color: var(--text-muted);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .admin-tab-btn.active {
-    color: var(--alifeo-dark);
-    border-bottom-color: var(--alifeo-dark);
   }
 
   .form-group {
@@ -1133,23 +639,6 @@ export const GLOBAL_STYLES = `
     box-shadow: 0 0 0 3px rgba(3, 94, 65, 0.12);
   }
 
-  .form-checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 13px;
-    color: var(--text-body);
-    cursor: pointer;
-    user-select: none;
-  }
-
-  .form-checkbox {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--alifeo-green);
-    cursor: pointer;
-  }
-
   .btn-submit {
     width: 100%;
     background: linear-gradient(135deg, var(--alifeo-dark), var(--alifeo-green));
@@ -1161,13 +650,22 @@ export const GLOBAL_STYLES = `
     border: none;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 6px -1px rgba(1, 56, 36, 0.2);
     font-family: inherit;
   }
 
   .btn-submit:hover {
     background: var(--alifeo-green-hover);
-    transform: translateY(-1px);
+  }
+
+  .btn-logout {
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
   }
 
   .table-container {
@@ -1191,23 +689,12 @@ export const GLOBAL_STYLES = `
     color: #475569;
     font-weight: 700;
     border-bottom: 1px solid var(--border-color);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
   }
 
   .admin-table td {
     padding: 12px 14px;
     border-bottom: 1px solid var(--border-color);
     color: var(--text-body);
-  }
-
-  .admin-table tr:last-child td {
-    border-bottom: none;
-  }
-
-  .admin-table tr:hover td {
-    background: #f8fafc;
   }
 
   .table-btn {
@@ -1239,7 +726,7 @@ export const GLOBAL_STYLES = `
     border: 1px solid #fecaca;
   }
 
-  /* Template Card Preview Grid */
+  /* Template grid */
   .template-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -1254,18 +741,6 @@ export const GLOBAL_STYLES = `
     background: #ffffff;
     cursor: pointer;
     transition: all 0.2s;
-    position: relative;
-  }
-
-  .template-item:hover {
-    border-color: var(--alifeo-green);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px rgba(0,0,0,0.08);
-  }
-
-  .template-item.selected {
-    border-color: var(--alifeo-green);
-    box-shadow: 0 0 0 2px var(--alifeo-green);
   }
 
   .template-thumb {
@@ -1273,9 +748,6 @@ export const GLOBAL_STYLES = `
     height: 120px;
     object-fit: cover;
     background: #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
 
   .template-thumb img {
@@ -1291,18 +763,7 @@ export const GLOBAL_STYLES = `
     justify-content: space-between;
   }
 
-  .template-name {
-    font-size: 12.5px;
-    font-weight: 600;
-    color: var(--text-title);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* ===================================================
-     PRINT STYLES FOR CRISP HIGH-RES PDF EXPORT
-     =================================================== */
+  /* Print Styles */
   @media print {
     @page {
       size: landscape;
@@ -1316,7 +777,7 @@ export const GLOBAL_STYLES = `
       margin: 0 !important;
     }
 
-    .top-brand-bar, .navbar, .footer, .cert-actions-card, .candidate-meta-card, .authenticity-guarantee-card, .verify-top-badge-bar, .cert-view-controls {
+    .top-brand-bar, .navbar, .footer, .cert-actions-card, .candidate-meta-card, .verify-top-badge-bar, .cert-view-controls {
       display: none !important;
     }
 

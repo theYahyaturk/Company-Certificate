@@ -17,8 +17,10 @@ export function renderAdminLoginPage(error?: string): string {
   <div class="top-brand-bar"></div>
   <header class="navbar">
     <div class="nav-brand">
-      <a href="/" class="nav-logo-box"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
-      <span class="nav-badge"><span class="nav-badge-dot"></span> Admin Login</span>
+      <a href="/" class="nav-logo-box">
+        <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" />
+        <span class="nav-brand-title">Alifeo</span>
+      </a>
     </div>
     <div class="nav-links">
       <a href="/" class="nav-pill-link">← Back to Portal</a>
@@ -47,7 +49,7 @@ export function renderAdminLoginPage(error?: string): string {
   </main>
 
   <footer class="footer">
-    <p>© 2026 Alifeo Technologies • Admin Console</p>
+    <p>© 2026 Alifeo • Admin Console</p>
   </footer>
 </body>
 </html>`;
@@ -243,8 +245,10 @@ export function renderAdminDashboard(
   <div class="top-brand-bar"></div>
   <header class="navbar">
     <div class="nav-brand">
-      <a href="/" class="nav-logo-box"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
-      <span class="nav-badge"><span class="nav-badge-dot"></span> Admin Dashboard</span>
+      <a href="/" class="nav-logo-box">
+        <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" />
+        <span class="nav-brand-title">Alifeo</span>
+      </a>
     </div>
     <div class="nav-links">
       <a href="/" target="_blank" class="nav-pill-link">Live Portal ↗</a>
@@ -810,7 +814,7 @@ export function renderAdminDashboard(
     </div>
   </div>
   <footer class="footer">
-    <p>© 2026 Alifeo Technologies • Admin Console</p>
+    <p>© 2026 Alifeo • Admin Console</p>
   </footer>
 
   <script>
