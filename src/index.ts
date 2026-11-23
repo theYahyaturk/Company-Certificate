@@ -271,7 +271,7 @@ export default {
         const layoutConfig = body.layout_config;
 
         await env.DB.prepare('UPDATE templates SET layout_config = ? WHERE id = ?').bind(layoutConfig, tplId).run();
-        
+
         // Also update existing certificates that use this template
         await env.DB.prepare('UPDATE certificates SET layout_config = ? WHERE template_id = ?').bind(layoutConfig, tplId).run();
 
@@ -301,7 +301,7 @@ export default {
     }
 
     // Protected API: POST /api/admin/certificates
-        // Route: POST /api/admin/certificates/update (Edit certificate details)
+    // Route: POST /api/admin/certificates/update (Edit certificate details)
     if (path === '/api/admin/certificates/update' && method === 'POST') {
       if (!isAdminAuthenticated(request, env)) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
