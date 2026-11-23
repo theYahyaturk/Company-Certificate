@@ -17,10 +17,11 @@ export function renderAdminLoginPage(error?: string): string {
   <div class="top-brand-bar"></div>
   <header class="navbar">
     <div class="nav-brand">
-      <a href="/"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
+      <a href="/" class="nav-logo-box"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
+      <span class="nav-badge"><span class="nav-badge-dot"></span> Admin Login</span>
     </div>
     <div class="nav-links">
-      <a href="/" class="nav-link" style="color: var(--alifeo-green); font-weight: 600;">← Back to Portal</a>
+      <a href="/" class="nav-pill-link">← Back to Portal</a>
     </div>
   </header>
 
@@ -242,11 +243,11 @@ export function renderAdminDashboard(
   <div class="top-brand-bar"></div>
   <header class="navbar">
     <div class="nav-brand">
-      <a href="/"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
-      <span class="nav-badge">Admin Dashboard</span>
+      <a href="/" class="nav-logo-box"><img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" /></a>
+      <span class="nav-badge"><span class="nav-badge-dot"></span> Admin Dashboard</span>
     </div>
     <div class="nav-links">
-      <a href="/" target="_blank" class="nav-link">Live Portal ↗</a>
+      <a href="/" target="_blank" class="nav-pill-link">Live Portal ↗</a>
       <form action="/api/admin/logout" method="POST" style="margin: 0;">
         <button type="submit" class="btn-logout">Logout</button>
       </form>
