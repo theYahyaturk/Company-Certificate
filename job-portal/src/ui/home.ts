@@ -1,30 +1,31 @@
-import { Job, UserSession } from '../types';
+import { Job, UserSession, Resume, Application, EmployerProfile } from '../types';
 import { JOB_PORTAL_STYLES } from './styles';
 import { ALIFEO_LOGO_BASE64 } from '../logo-base64';
 
 export function renderJobPortalPage(
   jobs: Job[],
   session: UserSession | null,
+  userProfile: any,
+  userResumes: Resume[],
+  myApplications: Application[],
+  employerJobs: Job[],
+  employerApplications: Application[],
   ablyKey: string,
   appUrl: string
 ): string {
-  const jobsJson = JSON.stringify(jobs);
-  const sessionJson = JSON.stringify(session);
+  const isEmployer = session?.active_role === 'employer';
+  const currentResume = userResumes.find(r => r.is_current) || userResumes[0];
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Alifeo Job | Free Job & Internship Platform</title>
+  <title>Alifeo Jobs | Two-Sided Career & Hiring Platform</title>
   <link rel="icon" type="image/png" href="${ALIFEO_LOGO_BASE64}">
   
-  <!-- Leaflet CSS for free interactive map view -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <!-- Ably Real-time SDK for in-app chat -->
   <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
   <style>
     ${JOB_PORTAL_STYLES}
@@ -37,989 +38,1258 @@ export function renderJobPortalPage(
   <header class="navbar">
     <div class="nav-brand">
       <a href="/" class="nav-logo-box">
-        <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo" />
-        <span class="nav-brand-title">Alifeo Job</span>
+        <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo">
+        <span class="nav-brand-title">Alifeo Jobs</span>
       </a>
-      <span class="nav-brand-badge">Free Portal</span>
+      <span class="nav-tagline">${isEmployer ? 'Recruiter Mode' : 'Candidate Mode'}</span>
     </div>
 
     <div class="nav-actions">
-      <button class="btn-nav-primary" onclick="handlePostJobClick()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        <span>Post Job Free</span>
-      </button>
-
       ${session ? `
-        <button class="btn-nav-outline" onclick="openDashboardModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>${session.role === 'employer' ? 'Company Dashboard' : 'My Applications'}</span>
-        </button>
-        <button class="btn-nav-outline" onclick="handleLogout()" style="padding: 6px 10px;" title="Logout">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <!-- Role Switcher Pill -->
+        <div class="role-toggle-pill">
+          <button class="role-btn ${!isEmployer ? 'active' : ''}" onclick="switchRole('job_seeker')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Job Seeker
+          </button>
+          <button class="role-btn ${isEmployer ? 'active' : ''}" onclick="switchRole('employer')">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            Employer
+          </button>
+        </div>
+
+        ${isEmployer ? `
+          <button class="btn btn-sm btn-accent" onclick="openPostJobModal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Post Job
+          </button>
+        ` : `
+          <button class="btn btn-sm btn-outline-white" onclick="openResumeModal()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            ${currentResume ? 'My Resume' : 'Upload Resume'}
+          </button>
+        `}
+
+        <button class="btn btn-sm btn-outline-white" onclick="handleLogout()" title="Sign Out">
+          Sign Out
         </button>
       ` : `
-        <button class="btn-nav-outline" onclick="openIntentModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          <span>Login / Join</span>
-        </button>
+        <button class="btn btn-sm btn-outline-white" onclick="openLoginModal('job_seeker')">Sign In</button>
+        <button class="btn btn-sm btn-accent" onclick="openLoginModal('employer')">Hire Someone</button>
       `}
     </div>
   </header>
 
-  <!-- Main Content -->
-  <main class="main-content">
-    
-    <!-- Hero Search -->
-    <div class="job-hero">
-      <h1 class="job-hero-title">Find Jobs & Internships</h1>
-      <p class="job-hero-sub">Direct hiring from Alifeo, Zifeeo, Aabeeo & verified employers with 100% free posting.</p>
-
-      <!-- Search & City Filter Bar -->
-      <div class="search-filter-box">
-        <div class="search-input-group">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: #94a3b8;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="keywordInput" class="search-input-field" placeholder="Role, skill, or company (e.g. SDE 1, Designer, React)" oninput="filterJobs()" />
-        </div>
-
-        <select id="cityFilter" class="filter-select" onchange="filterJobs()">
-          <option value="all">📍 All Cities</option>
-          <option value="Moradabad">Moradabad</option>
-          <option value="Delhi NCR">Delhi NCR / Noida / Gurugram</option>
-          <option value="Bangalore">Bangalore</option>
-          <option value="Mumbai">Mumbai</option>
-          <option value="Remote">Remote (Anywhere)</option>
-        </select>
-
-        <select id="typeFilter" class="filter-select" onchange="filterJobs()">
-          <option value="all">💼 All Types</option>
-          <option value="internship">Internships</option>
-          <option value="full_time">Full-Time Jobs</option>
-          <option value="part_time">Part-Time</option>
-        </select>
-
-        <button class="btn-search-main" onclick="filterJobs()">
-          <span>Search</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Category Filter Tabs -->
-    <div class="category-tabs" id="catTabs">
-      <button class="cat-pill active" onclick="setCategoryFilter('all', this)">🔥 All Roles</button>
-      <button class="cat-pill" onclick="setCategoryFilter('internship', this)">🎓 Internships</button>
-      <button class="cat-pill" onclick="setCategoryFilter('full_time', this)">💼 Full-Time Jobs</button>
-      <button class="cat-pill" onclick="setCategoryFilter('remote', this)">🌐 Remote Work</button>
-      <button class="cat-pill" onclick="setCategoryFilter('engineering', this)">💻 Software & Tech</button>
-      <button class="cat-pill" onclick="setCategoryFilter('design', this)">🎨 UI/UX & Design</button>
-      <button class="cat-pill" onclick="setCategoryFilter('marketing', this)">📈 Marketing & Growth</button>
-      <button class="cat-pill" onclick="setCategoryFilter('alifeo', this)">🏢 Alifeo Ventures</button>
-    </div>
-
-    <!-- View Switcher (List vs Map) -->
-    <div class="view-switcher-bar">
-      <div class="job-count-text" id="jobCountText">Showing ${jobs.length} Opportunities</div>
-      
-      <div class="view-toggle-btns">
-        <button class="view-toggle-btn active" id="btnListView" onclick="setViewMode('list')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-          List View
-        </button>
-        <button class="view-toggle-btn" id="btnMapView" onclick="setViewMode('map')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-          City Map View
-        </button>
-      </div>
-    </div>
-
-    <!-- Free OpenStreetMap Leaflet Container -->
-    <div id="mapViewContainer"></div>
-
-    <!-- Jobs Grid -->
-    <div class="jobs-grid" id="jobsGrid">
-      <!-- Rendered dynamically via JS for fast filtering -->
-    </div>
-
+  <!-- Main Platform Content -->
+  <main class="main-container">
+    ${isEmployer ? renderEmployerSection(employerJobs, employerApplications, userProfile) : renderSeekerSection(jobs, myApplications, userProfile, currentResume)}
   </main>
 
-  <!-- ==============================================
-       MODAL 1: PRE-LOGIN INTENT (Are you applying or hiring?)
-       ============================================== -->
-  <div class="modal-backdrop" id="intentModal">
-    <div class="modal-card">
-      <button class="close-modal-btn" onclick="closeModal('intentModal')">✕</button>
+  <!-- Mobile Bottom Navigation -->
+  <nav class="bottom-nav">
+    ${isEmployer ? `
+      <button class="bottom-nav-item active" onclick="showEmployerTab('jobs')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        <span>Jobs</span>
+      </button>
+      <button class="bottom-nav-item" onclick="openPostJobModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>Post</span>
+      </button>
+      <button class="bottom-nav-item" onclick="showEmployerTab('applicants')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Applicants</span>
+      </button>
+      <button class="bottom-nav-item" onclick="openEmployerProfileModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Company</span>
+      </button>
+    ` : `
+      <button class="bottom-nav-item active" onclick="showSeekerTab('feed')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Find Jobs</span>
+      </button>
+      <button class="bottom-nav-item" onclick="showSeekerTab('applications')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Applied</span>
+      </button>
+      <button class="bottom-nav-item" onclick="openResumeModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Resume</span>
+      </button>
+      <button class="bottom-nav-item" onclick="openProfileModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span>Profile</span>
+      </button>
+    `}
+  </nav>
 
-      <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="font-size: 22px; font-weight: 800; color: var(--alifeo-dark); margin-bottom: 6px;">
-          Welcome to Alifeo Job
-        </h2>
-        <p style="font-size: 13.5px; color: var(--text-muted);">Please select how you want to proceed:</p>
+  <!-- ============================================================= -->
+  <!-- MODALS -->
+  <!-- ============================================================= -->
+
+  <!-- 1. WhatsApp OTP Auth Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-content" style="max-width: 420px;">
+      <div class="modal-header">
+        <div class="modal-title">Sign In with WhatsApp</div>
+        <button class="modal-close-btn" onclick="closeModal('authModal')">&times;</button>
       </div>
-
-      <!-- Option A: Candidate -->
-      <div class="intent-card-choice" onclick="selectIntentRole('candidate')">
-        <div style="font-size: 32px;">🎓</div>
-        <div>
-          <h3 style="font-size: 16px; font-weight: 800; color: var(--alifeo-dark);">I am looking for a Job / Internship</h3>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">Apply with 1-click, track application status, submit assignments, and chat with employers.</p>
-        </div>
-      </div>
-
-      <!-- Option B: Employer -->
-      <div class="intent-card-choice" onclick="selectIntentRole('employer')">
-        <div style="font-size: 32px;">🏢</div>
-        <div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <h3 style="font-size: 16px; font-weight: 800; color: var(--alifeo-dark);">I want to Hire Talent</h3>
-            <span style="font-size: 10px; background: #ecfdf5; color: #059669; font-weight: 800; padding: 2px 6px; border-radius: 4px;">100% FREE</span>
-          </div>
-          <p style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;">Post unlimited free jobs & internships, review unlimited resumes, send assignments, and chat directly.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==============================================
-       MODAL 2: WHATSAPP OTP LOGIN
-       ============================================== -->
-  <div class="modal-backdrop" id="whatsappAuthModal">
-    <div class="modal-card">
-      <button class="close-modal-btn" onclick="closeModal('whatsappAuthModal')">✕</button>
-
-      <div style="text-align: center; margin-bottom: 20px;">
-        <div style="width: 48px; height: 48px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #25D366;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-        </div>
-        <h2 style="font-size: 20px; font-weight: 800; color: var(--alifeo-dark);">WhatsApp Passwordless Login</h2>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="authSubtitle">
-          We will send a 6-digit verification code to your WhatsApp.
-        </p>
-      </div>
-
-      <!-- Step 1: Mobile Input -->
-      <div id="authStepPhone">
-        <div class="form-group">
-          <label class="form-label">WhatsApp Number *</label>
-          <input type="tel" id="inputAuthPhone" class="form-input" placeholder="e.g. 9876543210 (10-digit)" autofocus />
-        </div>
-        <button type="button" class="btn-submit" id="btnSendOtp" onclick="handleSendOtp()">
-          Send Verification Code via WhatsApp
-        </button>
-      </div>
-
-      <!-- Step 2: OTP Input -->
-      <div id="authStepOtp" style="display: none;">
-        <div class="form-group">
-          <label class="form-label">Enter 6-Digit OTP *</label>
-          <input type="text" id="inputAuthOtp" class="form-input" placeholder="••••••" maxlength="6" style="letter-spacing: 6px; font-size: 20px; text-align: center;" />
-        </div>
-        <div id="otpTestHint" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 8px 12px; border-radius: 8px; font-size: 12px; margin-bottom: 12px; text-align: center;"></div>
-        <button type="button" class="btn-submit" id="btnVerifyOtp" onclick="handleVerifyOtp()">
-          Verify & Sign In
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ==============================================
-       MODAL 3: APPLY FOR JOB
-       ============================================== -->
-  <div class="modal-backdrop" id="applyModal">
-    <div class="modal-card">
-      <button class="close-modal-btn" onclick="closeModal('applyModal')">✕</button>
-
-      <div style="margin-bottom: 16px;">
-        <span class="job-pill-tag pill-type-internship" id="applyJobType">Internship</span>
-        <h2 style="font-size: 20px; font-weight: 800; color: var(--alifeo-dark); margin-top: 6px;" id="applyJobTitle">Apply for Job</h2>
-        <p style="font-size: 13px; color: var(--text-muted);" id="applyJobCompany">Company</p>
-      </div>
-
-      <form id="applyJobForm" onsubmit="submitJobApplication(event)">
-        <input type="hidden" id="applyTargetJobId" />
-
-        <div class="form-group">
-          <label class="form-label">Full Name *</label>
-          <input type="text" id="applyName" class="form-input" placeholder="e.g. Priya Sharma" required />
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 20px;">
+          <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" style="height: 48px; width: 48px; border-radius: 10px;">
+          <h3 style="font-size: 18px; font-weight: 800; color: #19563E; margin-top: 8px;">Welcome to Alifeo Jobs</h3>
+          <p style="font-size: 13px; color: #64748b; margin-top: 4px;">Direct passwordless verification on WhatsApp</p>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div id="authStep1">
           <div class="form-group">
-            <label class="form-label">WhatsApp Number *</label>
-            <input type="tel" id="applyPhone" class="form-input" placeholder="9876543210" required />
+            <label class="form-label">What are you here for?</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button type="button" id="roleChoiceSeeker" class="btn btn-outline" style="border-color: #19563e; background: #ecfdf5; color: #19563e;" onclick="selectAuthRole('job_seeker')">
+                Find a Job
+              </button>
+              <button type="button" id="roleChoiceEmployer" class="btn btn-outline" onclick="selectAuthRole('employer')">
+                Hire Someone
+              </button>
+            </div>
           </div>
+
           <div class="form-group">
-            <label class="form-label">Email Address *</label>
-            <input type="email" id="applyEmail" class="form-input" placeholder="priya@example.com" required />
+            <label class="form-label" for="authPhone">WhatsApp Phone Number</label>
+            <input type="tel" id="authPhone" class="form-control" placeholder="10-digit mobile number (e.g. 9876543210)">
           </div>
-        </div>
 
-        <div class="form-group">
-          <label class="form-label">Resume / CV Link (Google Drive / GitHub / LinkedIn) *</label>
-          <input type="url" id="applyResumeUrl" class="form-input" placeholder="https://drive.google.com/..." required />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Portfolio / Projects Link (Optional)</label>
-          <input type="url" id="applyPortfolioUrl" class="form-input" placeholder="https://github.com/... or Behance / Website" />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Brief Pitch / Cover Note (Optional)</label>
-          <textarea id="applyCoverNote" class="form-textarea" rows="2" placeholder="Why you are a strong fit for this opportunity..."></textarea>
-        </div>
-
-        <button type="submit" class="btn-submit" id="btnSubmitJobApp">
-          Submit Application
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==============================================
-       MODAL 4: POST JOB FREE (For Employers)
-       ============================================== -->
-  <div class="modal-backdrop" id="postJobModal">
-    <div class="modal-card" style="max-width: 580px;">
-      <button class="close-modal-btn" onclick="closeModal('postJobModal')">✕</button>
-
-      <div style="margin-bottom: 16px;">
-        <span style="font-size: 11px; background: #ecfdf5; color: #059669; font-weight: 800; padding: 3px 8px; border-radius: 4px;">100% FREE POSTING</span>
-        <h2 style="font-size: 20px; font-weight: 800; color: var(--alifeo-dark); margin-top: 4px;">Post a Job or Internship</h2>
-        <p style="font-size: 13px; color: var(--text-muted);">Unlimited resume views, candidate task assignments & in-app chat.</p>
-      </div>
-
-      <form id="postJobForm" onsubmit="submitNewJob(event)">
-        <div class="form-group">
-          <label class="form-label">Job / Internship Title *</label>
-          <input type="text" id="postTitle" class="form-input" placeholder="e.g. SDE 1 (React / Node.js) or UI/UX Intern" required />
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
           <div class="form-group">
-            <label class="form-label">Hiring Company *</label>
-            <input type="text" id="postCompany" class="form-input" placeholder="e.g. Zifeeo / Alifeo / Your Brand" required />
+            <label class="form-label" for="authName">Full Name <span>(Optional)</span></label>
+            <input type="text" id="authName" class="form-control" placeholder="Your name">
           </div>
-          <div class="form-group">
-            <label class="form-label">Opportunity Type *</label>
-            <select id="postType" class="form-select">
-              <option value="internship">Internship (Stipend / Non-Stipend)</option>
-              <option value="full_time">Full-Time Job</option>
-              <option value="part_time">Part-Time</option>
-            </select>
-          </div>
-        </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-          <div class="form-group">
-            <label class="form-label">Work Mode *</label>
-            <select id="postWorkMode" class="form-select">
-              <option value="remote">Remote (Work from Anywhere)</option>
-              <option value="onsite">Onsite (In-Office)</option>
-              <option value="hybrid">Hybrid</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">City Location *</label>
-            <input type="text" id="postCity" class="form-input" placeholder="e.g. Moradabad, Delhi, Bangalore" required />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Stipend / Salary Range *</label>
-          <input type="text" id="postSalary" class="form-input" placeholder="e.g. ₹15,000 - ₹25,000 / month or ₹6 - ₹10 LPA" required />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Key Required Skills (comma separated) *</label>
-          <input type="text" id="postSkills" class="form-input" placeholder="e.g. React, TypeScript, Figma, Tailwind" required />
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Description & Roles *</label>
-          <textarea id="postDesc" class="form-textarea" rows="3" placeholder="Explain the key responsibilities, deliverables, and team context..." required></textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Candidate Assignment / Assessment Task (Optional - like Internshala)</label>
-          <textarea id="postAssignment" class="form-textarea" rows="2" placeholder="e.g. Design a mobile authentication screen or build a mini-API. Candidate must submit this before interview."></textarea>
-        </div>
-
-        <button type="submit" class="btn-submit" id="btnSubmitNewJob">
-          Publish Job for Free
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ==============================================
-       MODAL 5: DASHBOARD (Candidate Applications or Employer Applicants)
-       ============================================== -->
-  <div class="modal-backdrop" id="dashboardModal">
-    <div class="modal-card" style="max-width: 740px;">
-      <button class="close-modal-btn" onclick="closeModal('dashboardModal')">✕</button>
-
-      <div style="margin-bottom: 16px;">
-        <h2 style="font-size: 20px; font-weight: 800; color: var(--alifeo-dark);" id="dashTitle">My Dashboard</h2>
-        <p style="font-size: 13px; color: var(--text-muted);" id="dashSub">Manage your applications and communication.</p>
-      </div>
-
-      <div id="dashContentArea" style="max-height: 480px; overflow-y: auto;">
-        <!-- Filled dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <!-- ==============================================
-       MODAL 6: IN-APP CHAT (Powered by Ably)
-       ============================================== -->
-  <div class="modal-backdrop" id="chatModal">
-    <div class="modal-card" style="max-width: 540px; padding: 18px;">
-      <button class="close-modal-btn" onclick="closeModal('chatModal')">✕</button>
-
-      <div style="margin-bottom: 12px;">
-        <div style="font-size: 11px; color: #059669; font-weight: 800;" id="chatRoleBadge">In-App Chat</div>
-        <h3 style="font-size: 16px; font-weight: 800; color: var(--alifeo-dark);" id="chatRecipientName">Chat</h3>
-      </div>
-
-      <div class="chat-box-container">
-        <div class="chat-messages-area" id="chatMessagesArea">
-          <div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">
-            Connecting real-time chat via Ably...
-          </div>
-        </div>
-
-        <form class="chat-input-bar" onsubmit="sendChatMessage(event)">
-          <input type="text" id="chatInputMessage" class="search-input-field" placeholder="Type a message..." required autocomplete="off" />
-          <button type="submit" class="btn-search-main" style="padding: 8px 16px;">
-            Send
+          <button class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="sendAuthOtp()">
+            Send WhatsApp OTP &rarr;
           </button>
+        </div>
+
+        <div id="authStep2" style="display: none;">
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: #065f46;">
+            OTP sent to your WhatsApp number. Check your chat.
+            <div id="testOtpDisplay" style="margin-top: 4px; font-weight: 700; color: #19563e;"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="authOtp">Enter 6-Digit OTP</label>
+            <input type="text" id="authOtp" class="form-control" placeholder="6-digit code" maxlength="6" style="letter-spacing: 6px; font-size: 18px; text-align: center; font-weight: 700;">
+          </div>
+
+          <button class="btn btn-primary" style="width: 100%; padding: 12px;" onclick="verifyAuthOtp()">
+            Verify & Continue
+          </button>
+          <button class="btn btn-outline" style="width: 100%; margin-top: 8px;" onclick="resetAuthStep()">
+            Change Number
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Job Detail & Apply Modal -->
+  <div class="modal-overlay" id="jobDetailModal">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <div class="modal-title" id="jdTitle">Job Details</div>
+        <button class="modal-close-btn" onclick="closeModal('jobDetailModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="jdBody">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer" id="jdFooter">
+        <button class="btn btn-outline" onclick="openReportModal('job')">Report</button>
+        <button class="btn btn-primary" id="jdApplyBtn" onclick="initiateJobApply()">Apply for Job</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Candidate Application Submission Modal -->
+  <div class="modal-overlay" id="applyModal">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <div class="modal-title">Submit Application</div>
+        <button class="modal-close-btn" onclick="closeModal('applyModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="applyJobHeader" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9;">
+          <div style="font-weight: 800; font-size: 16px; color: #19563e;" id="applyJobTitle">Role</div>
+          <div style="font-size: 13px; color: #64748b;" id="applyCompany">Company</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Resume to Submit</label>
+          ${currentResume ? `
+            <div class="resume-card" style="margin-top: 0;">
+              <div class="resume-info">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div>
+                  <div class="resume-name">${escapeHtml(currentResume.filename)}</div>
+                  <div class="resume-size">${formatBytes(currentResume.file_size)} &bull; Current Snapshot</div>
+                </div>
+              </div>
+              <a href="/api/resumes/${currentResume.id}/view" target="_blank" class="btn btn-sm btn-outline">Preview</a>
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">
+              A snapshot of this resume will be attached to your application.
+            </div>
+          ` : `
+            <div class="resume-dropzone" onclick="document.getElementById('applyResumeFileInput').click()">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#19563e" stroke-width="2" style="margin: 0 auto 6px auto; display: block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <div style="font-weight: 700; font-size: 13px; color: #19563e;">Upload Resume (PDF / DOC)</div>
+              <div style="font-size: 11px; color: #64748b;">Max 5MB file size</div>
+              <input type="file" id="applyResumeFileInput" style="display: none;" accept=".pdf,.doc,.docx" onchange="handleResumeUpload(event, true)">
+            </div>
+          `}
+        </div>
+
+        <div id="screeningQuestionsContainer"></div>
+
+        <div class="form-group">
+          <label class="form-label" for="applyCoverNote">Cover Note / Why you are a good fit <span>(Optional)</span></label>
+          <textarea id="applyCoverNote" class="form-control" placeholder="Briefly describe your relevant experience..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" onclick="closeModal('applyModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="submitApplicationFinal()">Submit Application</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Resume Management Modal -->
+  <div class="modal-overlay" id="resumeModal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <div class="modal-title">Manage Your Resume</div>
+        <button class="modal-close-btn" onclick="closeModal('resumeModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="resume-dropzone" onclick="document.getElementById('modalResumeFileInput').click()">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#19563e" stroke-width="2" style="margin: 0 auto 8px auto; display: block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <div style="font-weight: 700; font-size: 14px; color: #19563e;">Upload New Resume (PDF / DOC)</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 4px;">Max file size 5MB &bull; Validated format</div>
+          <input type="file" id="modalResumeFileInput" style="display: none;" accept=".pdf,.doc,.docx" onchange="handleResumeUpload(event)">
+        </div>
+
+        <div style="margin-top: 20px;">
+          <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 8px;">Uploaded Resumes</div>
+          ${userResumes.length > 0 ? userResumes.map(r => `
+            <div class="resume-card">
+              <div class="resume-info">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div>
+                  <div class="resume-name">${escapeHtml(r.filename)}</div>
+                  <div class="resume-size">${formatBytes(r.file_size)} &bull; ${r.is_current ? 'Default Resume' : 'Previous Version'}</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <a href="/api/resumes/${r.id}/view" target="_blank" class="btn btn-sm btn-outline">View</a>
+                <a href="/api/resumes/${r.id}/download" class="btn btn-sm btn-outline">Download</a>
+                <button class="btn btn-sm btn-danger" onclick="deleteResume('${r.id}')">Delete</button>
+              </div>
+            </div>
+          `).join('') : '<div style="color: #94a3b8; font-size: 13px; text-align: center; padding: 16px;">No resume uploaded yet. Upload one to apply to jobs with 1-click.</div>'}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Job Seeker Profile & Preferences Modal -->
+  <div class="modal-overlay" id="profileModal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <div class="modal-title">Career Preferences & Profile</div>
+        <button class="modal-close-btn" onclick="closeModal('profileModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="seekerProfileForm" onsubmit="handleSaveSeekerProfile(event)">
+          <div class="form-group">
+            <label class="form-label" for="spName">Full Name</label>
+            <input type="text" id="spName" class="form-control" value="${escapeHtml(userProfile?.name || session?.name || '')}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spEmail">Email Address</label>
+            <input type="email" id="spEmail" class="form-control" value="${escapeHtml(userProfile?.email || session?.email || '')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spHeadline">Professional Headline</label>
+            <input type="text" id="spHeadline" class="form-control" placeholder="e.g. Frontend Engineer | React & TypeScript" value="${escapeHtml(userProfile?.headline || '')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spSkills">Key Skills <span>(Comma-separated)</span></label>
+            <input type="text" id="spSkills" class="form-control" placeholder="React, Node.js, TypeScript, SQL" value="${escapeHtml(userProfile?.skills || '')}">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label" for="spExpLevel">Experience Level</label>
+              <select id="spExpLevel" class="form-control">
+                <option value="Fresher" ${userProfile?.experience_level === 'Fresher' ? 'selected' : ''}>Fresher</option>
+                <option value="1-2 years" ${userProfile?.experience_level === '1-2 years' ? 'selected' : ''}>1-2 years</option>
+                <option value="2-4 years" ${userProfile?.experience_level === '2-4 years' ? 'selected' : ''}>2-4 years</option>
+                <option value="5+ years" ${userProfile?.experience_level === '5+ years' ? 'selected' : ''}>5+ years</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="spWorkMode">Preferred Work Mode</label>
+              <select id="spWorkMode" class="form-control">
+                <option value="remote,hybrid,onsite">Any Mode</option>
+                <option value="remote" ${userProfile?.work_modes === 'remote' ? 'selected' : ''}>Remote</option>
+                <option value="hybrid" ${userProfile?.work_modes === 'hybrid' ? 'selected' : ''}>Hybrid</option>
+                <option value="onsite" ${userProfile?.work_modes === 'onsite' ? 'selected' : ''}>On-site</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spLocation">Current City / Location</label>
+            <input type="text" id="spLocation" class="form-control" placeholder="e.g. Moradabad, Delhi, Remote" value="${escapeHtml(userProfile?.location || '')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="spEducation">Education</label>
+            <input type="text" id="spEducation" class="form-control" placeholder="e.g. B.Tech Computer Science" value="${escapeHtml(userProfile?.education || '')}">
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Profile</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- Footer -->
-  <footer class="footer">
-    <p>© 2026 Alifeo Job. All rights reserved. • Built on Alifeo Product & WhatsApp Verification Network</p>
-  </footer>
+  <!-- 6. Employer Multi-Step Job Posting Modal -->
+  <div class="modal-overlay" id="postJobModal">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title">Post a Job or Internship</div>
+        <button class="modal-close-btn" onclick="closeModal('postJobModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <div><strong>Mandatory Admin Review:</strong> All job postings are verified by the Alifeo team before going live to ensure job seeker trust & safety.</div>
+        </div>
 
-  <!-- CLIENT-SIDE SCRIPT -->
-  <script>
-    const ALL_JOBS = ${jobsJson};
-    let currentUser = ${sessionJson};
-    const ABLY_KEY = "${ablyKey}";
-
-    let currentCategory = 'all';
-    let currentView = 'list';
-    let mapInstance = null;
-    let markersLayer = null;
-
-    // Active Chat context
-    let activeChatAppId = null;
-    let ablyRealtime = null;
-    let ablyChannel = null;
-
-    // Pre-login intent
-    let selectedRoleIntent = 'candidate';
-
-    function initPage() {
-      renderJobsList(ALL_JOBS);
-    }
-
-    // View Switcher
-    function setViewMode(mode) {
-      currentView = mode;
-      document.getElementById('btnListView').classList.toggle('active', mode === 'list');
-      document.getElementById('btnMapView').classList.toggle('active', mode === 'map');
-      
-      const mapBox = document.getElementById('mapViewContainer');
-      const gridBox = document.getElementById('jobsGrid');
-
-      if (mode === 'map') {
-        mapBox.style.display = 'block';
-        gridBox.style.display = 'none';
-        initMap();
-      } else {
-        mapBox.style.display = 'none';
-        gridBox.style.display = 'grid';
-      }
-    }
-
-    // Leaflet OpenStreetMap Initialization (100% Free, No Credit Card)
-    function initMap() {
-      if (!mapInstance) {
-        // Centered around India
-        mapInstance = L.map('mapViewContainer').setView([24.0, 78.5], 5);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 18,
-          attribution: '© OpenStreetMap contributors'
-        }).addTo(mapInstance);
-      }
-
-      // City Coordinates Mapping
-      const cityCoords = {
-        'moradabad': [28.8386, 78.7733],
-        'delhi ncr': [28.6139, 77.2090],
-        'delhi': [28.6139, 77.2090],
-        'noida': [28.5355, 77.3910],
-        'gurugram': [28.4595, 77.0266],
-        'bangalore': [12.9716, 77.5946],
-        'mumbai': [19.0760, 72.8777],
-        'remote': [23.2599, 77.4126]
-      };
-
-      if (markersLayer) {
-        mapInstance.removeLayer(markersLayer);
-      }
-      markersLayer = L.layerGroup().addTo(mapInstance);
-
-      // Group jobs by city
-      const cityCounts = {};
-      ALL_JOBS.forEach(j => {
-        const c = (j.city || 'remote').toLowerCase();
-        cityCounts[c] = (cityCounts[c] || 0) + 1;
-      });
-
-      Object.keys(cityCounts).forEach(c => {
-        const coords = cityCoords[c] || [28.6139 + (Math.random()-0.5)*2, 77.2090 + (Math.random()-0.5)*2];
-        const marker = L.marker(coords).addTo(markersLayer);
-        marker.bindPopup('<b>' + c.toUpperCase() + '</b><br>' + cityCounts[c] + ' Active Openings<br><button onclick="filterByCity(\\'' + c + '\\')" style="margin-top:5px; padding:3px 8px; background:#19563e; color:#fff; border:none; border-radius:4px; cursor:pointer;">View Jobs</button>');
-      });
-
-      setTimeout(() => { mapInstance.invalidateSize(); }, 200);
-    }
-
-    function filterByCity(cityName) {
-      document.getElementById('cityFilter').value = cityName;
-      setViewMode('list');
-      filterJobs();
-    }
-
-    // Category Tabs
-    function setCategoryFilter(cat, btn) {
-      currentCategory = cat;
-      const pills = document.querySelectorAll('.cat-pill');
-      pills.forEach(p => p.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-      filterJobs();
-    }
-
-    // Search and Filtering Logic
-    function filterJobs() {
-      const keyword = document.getElementById('keywordInput').value.toLowerCase().trim();
-      const city = document.getElementById('cityFilter').value.toLowerCase();
-      const type = document.getElementById('typeFilter').value;
-
-      const filtered = ALL_JOBS.filter(job => {
-        // Keyword match
-        const matchesKeyword = !keyword || 
-          job.title.toLowerCase().includes(keyword) || 
-          job.company.toLowerCase().includes(keyword) || 
-          job.skills.toLowerCase().includes(keyword) || 
-          (job.description && job.description.toLowerCase().includes(keyword));
-
-        // City match
-        const matchesCity = city === 'all' || 
-          (job.city && job.city.toLowerCase().includes(city)) || 
-          (city === 'remote' && job.work_mode === 'remote');
-
-        // Type match
-        const matchesType = type === 'all' || job.job_type === type;
-
-        // Category tab match
-        let matchesCat = true;
-        if (currentCategory === 'internship') matchesCat = job.job_type === 'internship';
-        else if (currentCategory === 'full_time') matchesCat = job.job_type === 'full_time';
-        else if (currentCategory === 'remote') matchesCat = job.work_mode === 'remote';
-        else if (currentCategory === 'engineering') matchesCat = job.title.toLowerCase().includes('sde') || job.skills.toLowerCase().includes('react') || job.skills.toLowerCase().includes('node');
-        else if (currentCategory === 'design') matchesCat = job.title.toLowerCase().includes('design') || job.skills.toLowerCase().includes('figma');
-        else if (currentCategory === 'marketing') matchesCat = job.title.toLowerCase().includes('marketing') || job.title.toLowerCase().includes('social');
-        else if (currentCategory === 'alifeo') matchesCat = ['alifeo', 'zifeeo', 'aabeeo'].some(v => job.company.toLowerCase().includes(v));
-
-        return matchesKeyword && matchesCity && matchesType && matchesCat;
-      });
-
-      renderJobsList(filtered);
-    }
-
-    function renderJobsList(jobs) {
-      const grid = document.getElementById('jobsGrid');
-      const countEl = document.getElementById('jobCountText');
-      if (countEl) countEl.textContent = 'Showing ' + jobs.length + ' Opportunities';
-
-      if (!jobs || jobs.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 48px 16px; background: #fff; border-radius: 16px; border: 1px solid var(--border-color);"><div style="font-size: 36px; margin-bottom: 8px;">🔍</div><h3 style="font-size: 18px; font-weight: 800; color: var(--alifeo-dark);">No matching opportunities found</h3><p style="color: var(--text-muted); font-size: 13.5px; margin-top: 4px;">Try searching with different keywords or cities.</p></div>';
-        return;
-      }
-
-      grid.innerHTML = jobs.map(j => {
-        const skillsArr = j.skills ? j.skills.split(',').map(s => s.trim()) : [];
-        const initial = j.company ? j.company.charAt(0).toUpperCase() : 'A';
-
-        return \`
-          <div class="job-card">
-            <div>
-              <div class="job-card-header">
-                <div>
-                  <h3 class="job-title">\${j.title}</h3>
-                  <div class="job-company">\${j.company}</div>
-                </div>
-                <div class="job-company-avatar">\${initial}</div>
-              </div>
-
-              <div class="job-meta-row">
-                <span class="job-pill-tag \${j.job_type === 'internship' ? 'pill-type-internship' : 'pill-type-job'}">
-                  \${j.job_type === 'internship' ? '🎓 Internship' : '💼 Full-Time'}
-                </span>
-                <span class="job-pill-tag pill-mode">
-                  \${j.work_mode === 'remote' ? '🌐 Remote' : '🏢 ' + (j.work_mode || 'Onsite')}
-                </span>
-                <span class="job-pill-tag pill-city">📍 \${j.city || 'Remote'}</span>
-              </div>
-
-              <div class="job-stipend-val">
-                <span>💰 \${j.stipend_salary || 'Competitive / Post-Interview'}</span>
-              </div>
-
-              <p class="job-desc-snippet">\${j.description ? j.description.slice(0, 140) + '...' : ''}</p>
-
-              <div class="job-skills-wrap">
-                \${skillsArr.slice(0, 4).map(s => \`<span class="job-skill-chip">\${s}</span>\`).join('')}
-              </div>
+        <form id="postJobForm" onsubmit="handlePostJobSubmit(event)">
+          <div class="form-group">
+            <label class="form-label" for="pjTitle">Job Title</label>
+            <input type="text" id="pjTitle" class="form-control" placeholder="e.g. Full Stack Developer (React / Node)" required>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label" for="pjCompany">Hiring Company</label>
+              <input type="text" id="pjCompany" class="form-control" value="${escapeHtml(userProfile?.company_name || 'My Company')}" required>
             </div>
-
-            <div class="job-card-actions">
-              <button class="btn-apply-job" onclick="openApplyModal('\${j.id}')">
-                Apply Now ↗
-              </button>
+            <div class="form-group">
+              <label class="form-label" for="pjCategory">Category</label>
+              <select id="pjCategory" class="form-control">
+                <option value="Engineering">Engineering & Tech</option>
+                <option value="Design">UI/UX & Design</option>
+                <option value="Product">Product Management</option>
+                <option value="Marketing">Marketing & Growth</option>
+                <option value="Operations">Operations & HR</option>
+                <option value="Sales">Sales & BD</option>
+              </select>
             </div>
           </div>
-        \`;
-      }).join('');
-    }
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <div class="form-group">
+              <label class="form-label" for="pjType">Job Type</label>
+              <select id="pjType" class="form-control">
+                <option value="full_time">Full Time</option>
+                <option value="internship">Internship</option>
+                <option value="part_time">Part Time</option>
+                <option value="contract">Contract</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pjMode">Work Mode</label>
+              <select id="pjMode" class="form-control">
+                <option value="remote">Remote</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="onsite">On-site</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pjCity">Location / City</label>
+              <input type="text" id="pjCity" class="form-control" placeholder="e.g. Moradabad" value="Moradabad">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pjSalary">Salary / Stipend Display</label>
+            <input type="text" id="pjSalary" class="form-control" placeholder="e.g. ₹25,000 - ₹40,000 / month" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pjSkills">Required Skills <span>(Comma-separated)</span></label>
+            <input type="text" id="pjSkills" class="form-control" placeholder="e.g. React, Node.js, SQL" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pjDesc">Job Description</label>
+            <textarea id="pjDesc" class="form-control" style="min-height: 90px;" placeholder="Describe the role and key goals..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="pjResp">Key Responsibilities <span>(Optional)</span></label>
+            <textarea id="pjResp" class="form-control" placeholder="Outline day-to-day duties..."></textarea>
+          </div>
 
-    // Modal helpers
+          <div style="display: flex; gap: 10px; margin-top: 14px;">
+            <button type="button" class="btn btn-outline" style="flex: 1;" onclick="submitJobForm(false)">Save as Draft</button>
+            <button type="button" class="btn btn-primary" style="flex: 1;" onclick="submitJobForm(true)">Submit for Review</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Schedule Interview Modal -->
+  <div class="modal-overlay" id="interviewModal">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <div class="modal-title">Schedule Interview</div>
+        <button class="modal-close-btn" onclick="closeModal('interviewModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="intAppId">
+        <div class="form-group">
+          <label class="form-label" for="intDate">Interview Date</label>
+          <input type="date" id="intDate" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="intTime">Time</label>
+          <input type="time" id="intTime" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="intType">Type</label>
+          <select id="intType" class="form-control">
+            <option value="online">Online Video (Google Meet / Zoom)</option>
+            <option value="in_person">In-Person Onsite</option>
+            <option value="phone">Phone Call</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="intLink">Meeting Link / Office Address</label>
+          <input type="text" id="intLink" class="form-control" placeholder="https://meet.google.com/... or office address">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="intNotes">Instructions for Candidate <span>(Optional)</span></label>
+          <textarea id="intNotes" class="form-control" placeholder="e.g. Please bring your laptop and be ready with your project demo..."></textarea>
+        </div>
+        <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="submitInterviewSchedule()">Confirm & Notify Candidate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. Real-time In-App Chat Modal -->
+  <div class="modal-overlay" id="chatModal">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title" id="chatTitle">Job Conversation</div>
+          <div style="font-size: 11px; color: #64748b;" id="chatSubtitle">Direct Candidate & Recruiter Chat</div>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('chatModal')">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 12px;">
+        <div class="chat-box">
+          <div class="chat-messages" id="chatMessages">
+            <div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">Loading conversation...</div>
+          </div>
+          <form class="chat-input-row" onsubmit="handleSendChatMessage(event)">
+            <input type="text" id="chatInputText" placeholder="Type a message..." autocomplete="off">
+            <button type="submit" class="btn btn-primary btn-sm">Send</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Trust & Safety Reporting Modal -->
+  <div class="modal-overlay" id="reportModal">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <div class="modal-title">Report & Safety Issue</div>
+        <button class="modal-close-btn" onclick="closeModal('reportModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="reportTargetType" value="job">
+        <input type="hidden" id="reportTargetId" value="">
+        <div class="form-group">
+          <label class="form-label" for="reportCategory">Reason Category</label>
+          <select id="reportCategory" class="form-control">
+            <option value="Fake Job">Fake job or company</option>
+            <option value="Money Demand">Asking for money / application fee</option>
+            <option value="Misleading Salary">Misleading salary / description</option>
+            <option value="Spam">Spam or promotional message</option>
+            <option value="Discrimination">Discrimination or inappropriate questions</option>
+            <option value="Harassment">Harassment or abusive behavior</option>
+            <option value="Other">Other policy violation</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="reportDesc">Description of Violation</label>
+          <textarea id="reportDesc" class="form-control" placeholder="Provide details to help admin investigation..."></textarea>
+        </div>
+        <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="submitSafetyReport()">Submit Report to Moderation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================= -->
+  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- ============================================================= -->
+  <script>
+    const ALL_JOBS = ${JSON.stringify(jobs)};
+    let ACTIVE_CHAT_APP_ID = null;
+    let ACTIVE_CHAT_JOB_ID = null;
+    let ABLY_CLIENT = null;
+    let CURRENT_AUTH_ROLE = 'job_seeker';
+    let SELECTED_JOB_FOR_APPLY = null;
+
     function openModal(id) {
-      document.getElementById(id).style.display = 'flex';
+      document.getElementById(id)?.classList.add('active');
     }
-
     function closeModal(id) {
-      document.getElementById(id).style.display = 'none';
+      document.getElementById(id)?.classList.remove('active');
     }
 
-    // Intent Modal
-    function openIntentModal() {
-      openModal('intentModal');
-    }
-
-    function selectIntentRole(role) {
-      selectedRoleIntent = role;
-      closeModal('intentModal');
-      
-      const sub = document.getElementById('authSubtitle');
-      if (sub) {
-        sub.textContent = role === 'employer' 
-          ? 'Enter your WhatsApp number to post free jobs & hire talent.' 
-          : 'Enter your WhatsApp number to apply & track jobs.';
-      }
-
-      openModal('whatsappAuthModal');
-      document.getElementById('authStepPhone').style.display = 'block';
-      document.getElementById('authStepOtp').style.display = 'none';
-    }
-
-    function handlePostJobClick() {
-      if (!currentUser) {
-        selectIntentRole('employer');
+    function selectAuthRole(role) {
+      CURRENT_AUTH_ROLE = role;
+      const bSeeker = document.getElementById('roleChoiceSeeker');
+      const bEmp = document.getElementById('roleChoiceEmployer');
+      if (role === 'employer') {
+        bEmp.style.borderColor = '#19563e';
+        bEmp.style.background = '#ecfdf5';
+        bEmp.style.color = '#19563e';
+        bSeeker.style.borderColor = '#e2e8f0';
+        bSeeker.style.background = '#ffffff';
+        bSeeker.style.color = '#334155';
       } else {
-        openModal('postJobModal');
+        bSeeker.style.borderColor = '#19563e';
+        bSeeker.style.background = '#ecfdf5';
+        bSeeker.style.color = '#19563e';
+        bEmp.style.borderColor = '#e2e8f0';
+        bEmp.style.background = '#ffffff';
+        bEmp.style.color = '#334155';
       }
     }
 
-    // WhatsApp Auth Functions
-    let currentAuthPhone = '';
+    function openLoginModal(role = 'job_seeker') {
+      selectAuthRole(role);
+      document.getElementById('authStep1').style.display = 'block';
+      document.getElementById('authStep2').style.display = 'none';
+      openModal('authModal');
+    }
 
-    async function handleSendOtp() {
-      const phoneInput = document.getElementById('inputAuthPhone');
-      const phone = phoneInput.value.trim();
-      const btn = document.getElementById('btnSendOtp');
-
-      if (!phone || phone.length < 10) {
-        alert('Please enter a valid 10-digit WhatsApp number');
+    async function sendAuthOtp() {
+      const phone = document.getElementById('authPhone').value.trim();
+      const name = document.getElementById('authName').value.trim();
+      if (!phone) {
+        alert('Please enter your WhatsApp mobile number');
         return;
       }
-
-      currentAuthPhone = phone;
-      btn.disabled = true;
-      btn.textContent = 'Sending WhatsApp OTP...';
-
       try {
         const res = await fetch('/api/auth/send-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, role: selectedRoleIntent })
+          body: JSON.stringify({ phone, name, role: CURRENT_AUTH_ROLE })
         });
         const data = await res.json();
-        
         if (data.success) {
-          document.getElementById('authStepPhone').style.display = 'none';
-          document.getElementById('authStepOtp').style.display = 'block';
-          
+          document.getElementById('authStep1').style.display = 'none';
+          document.getElementById('authStep2').style.display = 'block';
           if (data.testOtp) {
-            const hint = document.getElementById('otpTestHint');
-            hint.style.display = 'block';
-            hint.textContent = 'OTP sent to WhatsApp: ' + data.testOtp;
+            document.getElementById('testOtpDisplay').innerText = 'Verification OTP: ' + data.testOtp;
           }
         } else {
-          alert('Error sending OTP: ' + (data.error || 'Failed'));
+          alert(data.error || 'Failed to send OTP');
         }
-      } catch (err) {
-        alert('Request failed: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Send Verification Code via WhatsApp';
+      } catch (e) {
+        alert('Network connection error');
       }
     }
 
-    async function handleVerifyOtp() {
-      const otpInput = document.getElementById('inputAuthOtp');
-      const otp = otpInput.value.trim();
-      const btn = document.getElementById('btnVerifyOtp');
-
-      if (!otp || otp.length < 4) {
-        alert('Please enter the verification code');
+    async function verifyAuthOtp() {
+      const phone = document.getElementById('authPhone').value.trim();
+      const otp = document.getElementById('authOtp').value.trim();
+      const name = document.getElementById('authName').value.trim();
+      if (!otp) {
+        alert('Please enter the 6-digit OTP code');
         return;
       }
-
-      btn.disabled = true;
-      btn.textContent = 'Verifying...';
-
       try {
         const res = await fetch('/api/auth/verify-otp', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: currentAuthPhone, otp, role: selectedRoleIntent })
+          body: JSON.stringify({ phone, otp, role: CURRENT_AUTH_ROLE, name })
         });
         const data = await res.json();
-
         if (data.success) {
-          currentUser = data.user;
-          closeModal('whatsappAuthModal');
-          location.reload();
+          window.location.reload();
         } else {
-          alert('Invalid code: ' + (data.error || 'Please try again.'));
+          alert(data.error || 'Invalid OTP code');
         }
-      } catch (err) {
-        alert('Verification error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Verify & Sign In';
+      } catch (e) {
+        alert('Verification error');
+      }
+    }
+
+    function resetAuthStep() {
+      document.getElementById('authStep1').style.display = 'block';
+      document.getElementById('authStep2').style.display = 'none';
+    }
+
+    async function switchRole(targetRole) {
+      try {
+        const res = await fetch('/api/auth/switch-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role: targetRole })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to switch role');
+        }
+      } catch (e) {
+        alert('Network error');
       }
     }
 
     async function handleLogout() {
       await fetch('/api/auth/logout', { method: 'POST' });
-      location.reload();
+      window.location.reload();
     }
 
-    // Apply for Job
-    function openApplyModal(jobId) {
+    // Job View & Apply
+    function viewJobDetails(jobId) {
       const job = ALL_JOBS.find(j => j.id === jobId);
       if (!job) return;
+      SELECTED_JOB_FOR_APPLY = job;
+      document.getElementById('jdTitle').innerText = job.title;
+      document.getElementById('jdBody').innerHTML = \`
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+          <div>
+            <div style="font-size: 18px; font-weight: 800; color: #0f172a;">\${escapeHtml(job.title)}</div>
+            <div style="font-size: 14px; font-weight: 600; color: #19563e; margin-top: 4px;">\${escapeHtml(job.company_name)} &bull; \${escapeHtml(job.city)}</div>
+          </div>
+          <span class="status-pill status-approved">Verified Company</span>
+        </div>
 
-      document.getElementById('applyTargetJobId').value = jobId;
-      document.getElementById('applyJobTitle').textContent = job.title;
-      document.getElementById('applyJobCompany').textContent = job.company + ' • ' + (job.city || 'Remote');
-      document.getElementById('applyJobType').textContent = job.job_type === 'internship' ? 'Internship' : 'Full-Time';
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;">
+          <span class="tag tag-salary">\${escapeHtml(job.salary_display)}</span>
+          <span class="tag tag-type">\${escapeHtml(job.job_type.toUpperCase())}</span>
+          <span class="tag tag-mode">\${escapeHtml(job.work_mode.toUpperCase())}</span>
+          <span class="tag">\${escapeHtml(job.experience_level)}</span>
+        </div>
 
-      if (currentUser && currentUser.phone) {
-        document.getElementById('applyPhone').value = currentUser.phone;
-      }
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">About the Role</div>
+          <p style="font-size: 14px; color: #475569; line-height: 1.5; white-space: pre-line;">\${escapeHtml(job.description)}</p>
+        </div>
 
+        \${job.responsibilities ? \`
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">Key Responsibilities</div>
+            <p style="font-size: 14px; color: #475569; line-height: 1.5; white-space: pre-line;">\${escapeHtml(job.responsibilities)}</p>
+          </div>
+        \` : ''}
+
+          <div style="margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">Required Skills</div>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              \${(job.required_skills || job.skills || '').split(',').filter(Boolean).map(s => \`<span class="tag">\${escapeHtml(s.trim())}</span>\`).join('')}
+            </div>
+          </div>
+      \`;
+      document.getElementById('reportTargetId').value = job.id;
+      openModal('jobDetailModal');
+    }
+
+    function initiateJobApply() {
+      closeModal('jobDetailModal');
+      if (!SELECTED_JOB_FOR_APPLY) return;
+      document.getElementById('applyJobTitle').innerText = SELECTED_JOB_FOR_APPLY.title;
+      document.getElementById('applyCompany').innerText = SELECTED_JOB_FOR_APPLY.company_name;
       openModal('applyModal');
     }
 
-    async function submitJobApplication(e) {
-      e.preventDefault();
-      const jobId = document.getElementById('applyTargetJobId').value;
-      const btn = document.getElementById('btnSubmitJobApp');
-
-      const payload = {
-        candidate_name: document.getElementById('applyName').value.trim(),
-        candidate_phone: document.getElementById('applyPhone').value.trim(),
-        candidate_email: document.getElementById('applyEmail').value.trim(),
-        resume_url: document.getElementById('applyResumeUrl').value.trim(),
-        portfolio_url: document.getElementById('applyPortfolioUrl').value.trim(),
-        cover_note: document.getElementById('applyCoverNote').value.trim()
-      };
-
-      btn.disabled = true;
-      btn.textContent = 'Submitting Application...';
+    async function submitApplicationFinal() {
+      if (!SELECTED_JOB_FOR_APPLY) return;
+      const coverNote = document.getElementById('applyCoverNote')?.value.trim() || '';
 
       try {
-        const res = await fetch('/api/jobs/' + encodeURIComponent(jobId) + '/apply', {
+        const res = await fetch('/api/jobs/' + SELECTED_JOB_FOR_APPLY.id + '/apply', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ cover_note: coverNote })
         });
         const data = await res.json();
         if (data.success) {
-          alert('🎉 Application submitted successfully! You can track your status in My Applications.');
+          alert('Application submitted successfully!');
           closeModal('applyModal');
+          window.location.reload();
         } else {
-          alert('Error: ' + (data.error || 'Could not submit application'));
+          alert(data.error || 'Failed to submit application');
         }
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Submit Application';
-      }
-    }
-
-    // Post Free Job
-    async function submitNewJob(e) {
-      e.preventDefault();
-      const btn = document.getElementById('btnSubmitNewJob');
-
-      const payload = {
-        title: document.getElementById('postTitle').value.trim(),
-        company: document.getElementById('postCompany').value.trim(),
-        job_type: document.getElementById('postType').value,
-        work_mode: document.getElementById('postWorkMode').value,
-        city: document.getElementById('postCity').value.trim(),
-        stipend_salary: document.getElementById('postSalary').value.trim(),
-        skills: document.getElementById('postSkills').value.trim(),
-        description: document.getElementById('postDesc').value.trim(),
-        assignment_text: document.getElementById('postAssignment').value.trim()
-      };
-
-      btn.disabled = true;
-      btn.textContent = 'Publishing...';
-
-      try {
-        const res = await fetch('/api/jobs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-
-        if (data.success) {
-          alert('🎉 Your job has been published for free! Candidates can now apply.');
-          closeModal('postJobModal');
-          location.reload();
-        } else {
-          alert('Error publishing job: ' + (data.error || 'Failed'));
-        }
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Publish Job for Free';
-      }
-    }
-
-    // Dashboard Modal (Candidate or Employer)
-    async function openDashboardModal() {
-      if (!currentUser) return;
-      const isEmployer = currentUser.role === 'employer';
-      document.getElementById('dashTitle').textContent = isEmployer ? 'Company Hiring Dashboard' : 'My Applications Tracker';
-      document.getElementById('dashSub').textContent = isEmployer 
-        ? 'View applicants, unlimited resumes, send assignments, and chat.' 
-        : 'Track your application status, view assignments, and chat with employers.';
-
-      const content = document.getElementById('dashContentArea');
-      content.innerHTML = '<div style="text-align: center; padding: 30px; color: #94a3b8;">Loading records...</div>';
-      openModal('dashboardModal');
-
-      try {
-        const endpoint = isEmployer ? '/api/employer/applications' : '/api/my-applications';
-        const res = await fetch(endpoint);
-        const data = await res.json();
-        const apps = data.applications || [];
-
-        if (apps.length === 0) {
-          content.innerHTML = '<div style="text-align: center; padding: 40px; color: #94a3b8;"><div style="font-size: 32px; margin-bottom: 8px;">📋</div><p>No applications found.</p></div>';
-          return;
-        }
-
-        content.innerHTML = apps.map(a => {
-          let statusColor = '#d97706';
-          let statusLabel = 'Applied';
-          if (a.status === 'assignment_given') { statusColor = '#7c3aed'; statusLabel = 'Assignment Given'; }
-          if (a.status === 'shortlisted') { statusColor = '#2563eb'; statusLabel = 'Shortlisted'; }
-          if (a.status === 'interview') { statusColor = '#059669'; statusLabel = 'Interview Scheduled'; }
-          if (a.status === 'hired') { statusColor = '#059669'; statusLabel = 'Hired ✔'; }
-          if (a.status === 'rejected') { statusColor = '#dc2626'; statusLabel = 'Rejected'; }
-
-          return \`
-            <div style="background: #ffffff; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 12px;">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
-                <div>
-                  <h4 style="font-size: 15.5px; font-weight: 800; color: var(--alifeo-dark);">\${a.job_title}</h4>
-                  <div style="font-size: 12.5px; color: #64748b;">\${a.company} • Candidate: <strong>\${a.candidate_name}</strong></div>
-                </div>
-                <span style="font-size: 11px; font-weight: 800; color: \${statusColor}; background: \${statusColor}15; padding: 3px 8px; border-radius: 6px;">
-                  \${statusLabel}
-                </span>
-              </div>
-
-              <!-- Candidate Info / Unlimited Resume Link -->
-              <div style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; margin-bottom: 12px;">
-                \${a.resume_url ? \`<a href="\${a.resume_url}" target="_blank" style="color: #2563eb; font-weight: 700; text-decoration: underline;">📄 View Unlimited Resume ↗</a>\` : ''}
-                \${a.portfolio_url ? \`<a href="\${a.portfolio_url}" target="_blank" style="color: #059669; font-weight: 700; text-decoration: underline;">🌐 Portfolio ↗</a>\` : ''}
-                <span style="color: #64748b;">📱 \${a.candidate_phone}</span>
-                <span style="color: #64748b;">✉️ \${a.candidate_email}</span>
-              </div>
-
-              <!-- Assignment View -->
-              \${a.assignment_text ? \`
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; font-size: 12px; margin-bottom: 10px;">
-                  <strong style="color: #7c3aed;">📝 Assessment Task:</strong> \${a.assignment_text}
-                </div>
-              \` : ''}
-
-              <!-- Actions (Chat, Update Status) -->
-              <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <button onclick="openChatModal('\${a.id}', '\${isEmployer ? a.candidate_name : a.company}')" style="background: #19563e; color: #fff; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;">
-                  💬 Open Live Chat
-                </button>
-
-                \${isEmployer ? \`
-                  <select onchange="updateApplicantStatus('\${a.id}', this.value)" style="font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid #cbd5e1;">
-                    <option value="applied" \${a.status === 'applied' ? 'selected' : ''}>Applied</option>
-                    <option value="under_review" \${a.status === 'under_review' ? 'selected' : ''}>Under Review</option>
-                    <option value="assignment_given" \${a.status === 'assignment_given' ? 'selected' : ''}>Assignment Sent</option>
-                    <option value="shortlisted" \${a.status === 'shortlisted' ? 'selected' : ''}>Shortlisted</option>
-                    <option value="interview" \${a.status === 'interview' ? 'selected' : ''}>Interview</option>
-                    <option value="hired" \${a.status === 'hired' ? 'selected' : ''}>Hired</option>
-                    <option value="rejected" \${a.status === 'rejected' ? 'selected' : ''}>Rejected</option>
-                  </select>
-                \` : ''}
-              </div>
-            </div>
-          \`;
-        }).join('');
-
-      } catch (err) {
-        content.innerHTML = '<div style="color: red; padding: 20px;">Failed to load records: ' + err.message + '</div>';
-      }
-    }
-
-    async function updateApplicantStatus(appId, status) {
-      await fetch('/api/applications/' + encodeURIComponent(appId) + '/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      openDashboardModal();
-    }
-
-    // In-App Chat powered by Ably
-    async function openChatModal(appId, partnerName) {
-      activeChatAppId = appId;
-      document.getElementById('chatRecipientName').textContent = partnerName || 'Live Chat';
-      openModal('chatModal');
-
-      const messagesArea = document.getElementById('chatMessagesArea');
-      messagesArea.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 20px;">Loading conversation...</div>';
-
-      // 1. Fetch previous message history
-      try {
-        const res = await fetch('/api/chat/' + encodeURIComponent(appId) + '/messages');
-        const data = await res.json();
-        renderChatMessages(data.messages || []);
       } catch (e) {
-        console.warn(e);
-      }
-
-      // 2. Connect to Ably WebSocket for real-time messages
-      try {
-        if (!ablyRealtime && window.Ably) {
-          ablyRealtime = new Ably.Realtime({ key: ABLY_KEY, clientId: currentUser ? currentUser.phone : 'guest' });
-        }
-        if (ablyRealtime) {
-          const channelName = 'job-chat-' + appId;
-          ablyChannel = ablyRealtime.channels.get(channelName);
-          ablyChannel.subscribe('new-message', (msg) => {
-            appendSingleChatMessage(msg.data);
-          });
-        }
-      } catch (err) {
-        console.error('Ably connection error:', err);
+        alert('Network error while applying');
       }
     }
 
-    function renderChatMessages(messages) {
-      const area = document.getElementById('chatMessagesArea');
-      if (!messages || messages.length === 0) {
-        area.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 40px;">No messages yet. Say hello! 👋</div>';
+    // Resume Upload Handler (Base64 file reading)
+    function handleResumeUpload(event, autoSelect = false) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size exceeds 5MB limit. Please choose a smaller file.');
         return;
       }
-      area.innerHTML = messages.map(m => {
-        const isMe = currentUser && (
-          (currentUser.role === 'candidate' && m.sender_type === 'candidate') ||
-          (currentUser.role === 'employer' && m.sender_type === 'employer')
-        );
-        return \`
-          <div class="chat-bubble \${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
-            <div style="font-size: 10.5px; opacity: 0.8; margin-bottom: 2px;">\${m.sender_name}</div>
-            <div>\${m.message}</div>
-          </div>
-        \`;
-      }).join('');
-      area.scrollTop = area.scrollHeight;
-    }
 
-    function appendSingleChatMessage(m) {
-      const area = document.getElementById('chatMessagesArea');
-      const isMe = currentUser && (
-        (currentUser.role === 'candidate' && m.sender_type === 'candidate') ||
-        (currentUser.role === 'employer' && m.sender_type === 'employer')
-      );
-      const div = document.createElement('div');
-      div.className = 'chat-bubble ' + (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
-      div.innerHTML = \`<div style="font-size: 10.5px; opacity: 0.8; margin-bottom: 2px;">\${m.sender_name}</div><div>\${m.message}</div>\`;
-      area.appendChild(div);
-      area.scrollTop = area.scrollHeight;
-    }
-
-    async function sendChatMessage(e) {
-      e.preventDefault();
-      const input = document.getElementById('chatInputMessage');
-      const text = input.value.trim();
-      if (!text || !activeChatAppId) return;
-
-      input.value = '';
-      const senderName = currentUser ? (currentUser.name || currentUser.company_name || currentUser.phone) : 'User';
-      const senderType = currentUser ? currentUser.role : 'candidate';
-
-      const payload = {
-        message: text,
-        sender_name: senderName,
-        sender_type: senderType
-      };
-
-      try {
-        // Publish to backend (which saves to DB and broadcasts to Ably)
-        await fetch('/api/chat/' + encodeURIComponent(activeChatAppId) + '/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        // Also publish directly to Ably channel for instant UI feedback
-        if (ablyChannel) {
-          ablyChannel.publish('new-message', payload);
+      const reader = new FileReader();
+      reader.onload = async function() {
+        const base64Data = reader.result;
+        try {
+          const res = await fetch('/api/resumes/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              file_data: base64Data,
+              file_size: file.size,
+              mime_type: file.type || 'application/pdf'
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            alert('Resume uploaded and set as default!');
+            window.location.reload();
+          } else {
+            alert(data.error || 'Failed to upload resume');
+          }
+        } catch (e) {
+          alert('Upload failed');
         }
-      } catch (err) {
-        console.error('Send message error:', err);
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function deleteResume(id) {
+      if (!confirm('Are you sure you want to delete this resume?')) return;
+      try {
+        const res = await fetch('/api/resumes/' + id, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Delete failed');
+        }
+      } catch (e) {
+        alert('Network error');
       }
     }
 
-    // Run on load
-    document.addEventListener('DOMContentLoaded', initPage);
+    // Post Job Form Submit
+    async function submitJobForm(submitForReview) {
+      const title = document.getElementById('pjTitle').value.trim();
+      const company_name = document.getElementById('pjCompany').value.trim();
+      const category = document.getElementById('pjCategory').value;
+      const job_type = document.getElementById('pjType').value;
+      const work_mode = document.getElementById('pjMode').value;
+      const city = document.getElementById('pjCity').value.trim();
+      const salary_display = document.getElementById('pjSalary').value.trim();
+      const required_skills = document.getElementById('pjSkills').value.trim();
+      const description = document.getElementById('pjDesc').value.trim();
+      const responsibilities = document.getElementById('pjResp').value.trim();
+
+      if (!title || !description || !salary_display) {
+        alert('Please fill out all required fields');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/employer/jobs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title, company_name, category, job_type, work_mode, city,
+            salary_display, required_skills, description, responsibilities,
+            submit_for_review: submitForReview
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(submitForReview ? 'Job submitted for admin review!' : 'Job saved as draft!');
+          closeModal('postJobModal');
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to post job');
+        }
+      } catch (e) {
+        alert('Submission error');
+      }
+    }
+
+    // Employer Status & Internal Notes
+    async function updateCandidateStatus(appId, newStatus) {
+      const notes = prompt('Add optional note for status change:');
+      try {
+        const res = await fetch('/api/employer/applications/' + appId + '/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus, notes })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to update status');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    async function saveInternalNotes(appId) {
+      const notes = document.getElementById('internalNotes_' + appId)?.value.trim() || '';
+      try {
+        const res = await fetch('/api/employer/applications/' + appId + '/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ notes })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Internal private note saved!');
+        } else {
+          alert(data.error || 'Failed to save note');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    // Interview Modal
+    function openInterviewScheduleModal(appId) {
+      document.getElementById('intAppId').value = appId;
+      openModal('interviewModal');
+    }
+
+    async function submitInterviewSchedule() {
+      const appId = document.getElementById('intAppId').value;
+      const scheduled_date = document.getElementById('intDate').value;
+      const scheduled_time = document.getElementById('intTime').value;
+      const interview_type = document.getElementById('intType').value;
+      const location_or_link = document.getElementById('intLink').value.trim();
+      const instructions = document.getElementById('intNotes').value.trim();
+
+      if (!scheduled_date || !scheduled_time) {
+        alert('Please select date and time');
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/interviews/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            application_id: appId,
+            scheduled_date,
+            scheduled_time,
+            interview_type,
+            location_or_link,
+            instructions
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Interview scheduled and candidate notified!');
+          closeModal('interviewModal');
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to schedule');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    // Realtime In-App Chat
+    async function openChatModal(appId, title) {
+      ACTIVE_CHAT_APP_ID = appId;
+      document.getElementById('chatTitle').innerText = title || 'Job Conversation';
+      openModal('chatModal');
+      await loadChatMessages(appId);
+    }
+
+    async function loadChatMessages(appId) {
+      try {
+        const res = await fetch('/api/chat/' + appId + '/messages');
+        const data = await res.json();
+        const container = document.getElementById('chatMessages');
+        if (data.messages && data.messages.length > 0) {
+          container.innerHTML = data.messages.map(m => \`
+            <div class="chat-bubble \${m.sender_role === '${session?.active_role === 'employer' ? 'employer' : 'candidate'}' ? 'mine' : 'theirs'}">
+              <div style="font-size: 11px; font-weight: 700; opacity: 0.8; margin-bottom: 2px;">\${escapeHtml(m.sender_name)}</div>
+              <div>\${escapeHtml(m.message)}</div>
+              <div class="chat-time">\${new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            </div>
+          \`).join('');
+          container.scrollTop = container.scrollHeight;
+        } else {
+          container.innerHTML = '<div style="text-align: center; color: #94a3b8; font-size: 12px; margin-top: 30px;">No messages yet. Start the conversation!</div>';
+        }
+      } catch (e) {
+        console.error('Chat load error:', e);
+      }
+    }
+
+    async function handleSendChatMessage(event) {
+      event.preventDefault();
+      const input = document.getElementById('chatInputText');
+      const text = input.value.trim();
+      if (!text || !ACTIVE_CHAT_APP_ID) return;
+
+      input.value = '';
+      try {
+        const res = await fetch('/api/chat/' + ACTIVE_CHAT_APP_ID + '/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        if (data.success) {
+          await loadChatMessages(ACTIVE_CHAT_APP_ID);
+        }
+      } catch (e) {
+        alert('Failed to send message');
+      }
+    }
+
+    // Safety Report
+    function openReportModal(targetType, targetId) {
+      document.getElementById('reportTargetType').value = targetType || 'job';
+      document.getElementById('reportTargetId').value = targetId || '';
+      openModal('reportModal');
+    }
+
+    async function submitSafetyReport() {
+      const target_type = document.getElementById('reportTargetType').value;
+      const target_id = document.getElementById('reportTargetId').value;
+      const reason_category = document.getElementById('reportCategory').value;
+      const description = document.getElementById('reportDesc').value.trim();
+
+      try {
+        const res = await fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_type, target_id, reason_category, description })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Report submitted. Admin moderation will investigate.');
+          closeModal('reportModal');
+        } else {
+          alert(data.error || 'Failed to submit report');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    function openPostJobModal() { openModal('postJobModal'); }
+    function openResumeModal() { openModal('resumeModal'); }
+    function openProfileModal() { openModal('profileModal'); }
+    function openEmployerProfileModal() { alert('Employer company settings updated from job post.'); }
+
+    function showSeekerTab(tab) {
+      // Toggle client-side view tab
+    }
+    function showEmployerTab(tab) {
+      // Toggle employer client view tab
+    }
+
+    function escapeHtml(t) {
+      if (!t) return '';
+      return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
   </script>
 </body>
 </html>`;
+}
+
+function renderSeekerSection(
+  jobs: Job[],
+  applications: Application[],
+  profile: any,
+  currentResume?: Resume
+): string {
+  const jobCards = jobs.map(j => `
+    <div class="job-card" onclick="viewJobDetails('${j.id}')">
+      <div class="job-card-top">
+        <div>
+          <div class="job-card-title">${escapeHtml(j.title)}</div>
+          <div class="job-card-company">
+            ${escapeHtml(j.company_name)}
+            <span class="verified-badge">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Verified
+            </span>
+          </div>
+        </div>
+        <span class="status-pill status-approved">${j.job_type === 'internship' ? 'Internship' : 'Job'}</span>
+      </div>
+
+      <div class="job-card-tags">
+        <span class="tag tag-salary">${escapeHtml(j.salary_display)}</span>
+        <span class="tag tag-mode">${j.work_mode.toUpperCase()}</span>
+        <span class="tag">${escapeHtml(j.city)}</span>
+        <span class="tag">${escapeHtml(j.experience_level)}</span>
+      </div>
+
+      <div class="job-card-footer">
+        <div>Skills: ${escapeHtml(((j.required_skills || (j as any).skills || '').split(',').filter(Boolean).slice(0, 3).join(', ')) || 'General')}</div>
+        <div style="font-weight: 700; color: #19563e;">View Details &rarr;</div>
+      </div>
+    </div>
+  `).join('');
+
+  const appCards = applications.map(a => `
+    <div class="job-card" style="cursor: default;">
+      <div class="job-card-top">
+        <div>
+          <div class="job-card-title">${escapeHtml(a.job_title || 'Position')}</div>
+          <div class="job-card-company">${escapeHtml(a.company_name || 'Alifeo Partner')}</div>
+        </div>
+        <span class="status-pill status-${a.status}">${formatStatus(a.status)}</span>
+      </div>
+
+      <div style="font-size: 12px; color: #64748b; margin: 10px 0;">
+        Applied on ${new Date(a.created_at).toLocaleDateString()} &bull; Snapshot: <strong>${escapeHtml(a.resume_filename)}</strong>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 10px;">
+        <button class="btn btn-sm btn-primary" onclick="openChatModal('${a.id}', '${escapeHtml(a.job_title)}')">In-App Chat</button>
+        ${a.status !== 'withdrawn' ? `<button class="btn btn-sm btn-outline" onclick="withdrawApp('${a.id}')">Withdraw</button>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="search-hero-card">
+      <div class="search-input-row">
+        <div class="search-field">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" id="feedSearchQuery" placeholder="Search by job title, skill, or company...">
+        </div>
+        <div class="search-field" style="max-width: 200px;">
+          <select id="feedFilterCity">
+            <option value="">All Locations</option>
+            <option value="Moradabad">Moradabad</option>
+            <option value="Delhi NCR">Delhi NCR</option>
+            <option value="Remote">Remote</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="alert('Filtering jobs feed...')">Search</button>
+      </div>
+      <div class="filter-pills-row">
+        <button class="filter-pill active">All Roles</button>
+        <button class="filter-pill">Remote Only</button>
+        <button class="filter-pill">Internships</button>
+        <button class="filter-pill">Full Time</button>
+        <button class="filter-pill">Engineering</button>
+        <button class="filter-pill">Design</button>
+      </div>
+    </div>
+
+    <div class="layout-grid">
+      <div>
+        <div class="section-header-row">
+          <div class="section-heading">
+            Live Verified Openings
+            <span class="count-badge">${jobs.length} Available</span>
+          </div>
+        </div>
+        ${jobCards || '<div style="text-align: center; color: #94a3b8; padding: 40px;">No approved jobs found matching filters.</div>'}
+      </div>
+
+      <div>
+        <div class="section-header-row">
+          <div class="section-heading">
+            My Applications
+            <span class="count-badge">${applications.length}</span>
+          </div>
+        </div>
+        ${appCards || `
+          <div class="job-card" style="text-align: center; padding: 30px; color: #64748b;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin: 0 auto 8px auto; display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <div style="font-weight: 700; font-size: 14px; color: #334155;">No applications submitted yet</div>
+            <div style="font-size: 12px; margin-top: 4px;">Explore openings and apply with 1-click.</div>
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+function renderEmployerSection(
+  jobs: Job[],
+  applications: Application[],
+  profile: EmployerProfile
+): string {
+  const activeJobs = jobs.filter(j => j.status === 'approved');
+  const pendingJobs = jobs.filter(j => j.status === 'pending_review');
+
+  const jobRows = jobs.map(j => `
+    <div class="job-card">
+      <div class="job-card-top">
+        <div>
+          <div class="job-card-title">${escapeHtml(j.title)}</div>
+          <div class="job-card-company">${escapeHtml(j.company_name)} &bull; ${escapeHtml(j.city)} &bull; ${j.work_mode.toUpperCase()}</div>
+        </div>
+        <span class="status-pill status-${j.status}">${formatJobStatus(j.status)}</span>
+      </div>
+
+      ${j.status === 'changes_requested' && j.admin_feedback ? `
+        <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #c2410c; margin: 10px 0;">
+          <strong>Admin Feedback:</strong> ${escapeHtml(j.admin_feedback)}
+        </div>
+      ` : ''}
+
+      <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center; justify-content: space-between;">
+        <span class="tag tag-salary">${escapeHtml(j.salary_display)}</span>
+        <div>
+          ${j.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="alert('Submit draft via edit')">Submit for Review</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  const applicantRows = applications.map(a => `
+    <div class="job-card">
+      <div class="job-card-top">
+        <div>
+          <div class="job-card-title">${escapeHtml(a.candidate_name)}</div>
+          <div style="font-size: 13px; color: #19563e; font-weight: 600;">Applied for: ${escapeHtml(a.job_title || 'Position')}</div>
+          <div style="font-size: 12px; color: #64748b; margin-top: 2px;">Phone: <strong>${escapeHtml(a.candidate_phone)}</strong></div>
+        </div>
+        <span class="status-pill status-${a.status}">${formatStatus(a.status)}</span>
+      </div>
+
+      <div style="display: flex; gap: 8px; margin: 12px 0;">
+        <a href="/api/resumes/${a.resume_id}/view" target="_blank" class="btn btn-sm btn-outline">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          View Resume
+        </a>
+        <button class="btn btn-sm btn-primary" onclick="openChatModal('${a.id}', '${escapeHtml(a.candidate_name)}')">Message</button>
+        <button class="btn btn-sm btn-accent" onclick="openInterviewScheduleModal('${a.id}')">Schedule Interview</button>
+      </div>
+
+      <div class="form-group" style="margin-top: 10px;">
+        <label class="form-label" style="font-size: 11px;">Pipeline Stage Action</label>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button class="btn btn-sm btn-outline" onclick="updateCandidateStatus('${a.id}', 'under_review')">Under Review</button>
+          <button class="btn btn-sm btn-outline" onclick="updateCandidateStatus('${a.id}', 'shortlisted')">Shortlist</button>
+          <button class="btn btn-sm btn-outline" style="color: #15803d; border-color: #a7f3d0;" onclick="updateCandidateStatus('${a.id}', 'selected')">Select</button>
+          <button class="btn btn-sm btn-danger" onclick="updateCandidateStatus('${a.id}', 'rejected')">Reject</button>
+        </div>
+      </div>
+
+      <!-- Private Internal Notes -->
+      <div style="margin-top: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+        <div style="font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px;">Recruiter Private Internal Notes (Hidden from candidate)</div>
+        <textarea id="internalNotes_${a.id}" class="form-control" style="font-size: 12px; min-height: 50px;" placeholder="Add private evaluation notes...">${escapeHtml(a.employer_internal_notes || '')}</textarea>
+        <button class="btn btn-sm btn-outline" style="margin-top: 6px;" onclick="saveInternalNotes('${a.id}')">Save Private Note</button>
+      </div>
+    </div>
+  `).join('');
+
+  return `
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Active Jobs</div>
+        <div class="metric-value">${activeJobs.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Under Review</div>
+        <div class="metric-value" style="color: ${pendingJobs.length > 0 ? '#b45309' : '#19563e'}">${pendingJobs.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Applicants</div>
+        <div class="metric-value">${applications.length}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Verification</div>
+        <div style="font-size: 14px; font-weight: 700; color: #0284c7; margin-top: 8px;">
+          ${profile?.verification_status ? profile.verification_status.toUpperCase() : 'UNVERIFIED'}
+        </div>
+      </div>
+    </div>
+
+    <div class="layout-grid">
+      <div>
+        <div class="section-header-row">
+          <div class="section-heading">
+            My Job Postings (${jobs.length})
+          </div>
+          <button class="btn btn-sm btn-accent" onclick="openPostJobModal()">+ Post New Job</button>
+        </div>
+        ${jobRows || '<div style="text-align: center; color: #94a3b8; padding: 30px;">No jobs posted yet. Click Post New Job to start hiring.</div>'}
+      </div>
+
+      <div>
+        <div class="section-header-row">
+          <div class="section-heading">
+            Candidate Pipeline (${applications.length})
+          </div>
+        </div>
+        ${applicantRows || '<div style="text-align: center; color: #94a3b8; padding: 30px;">No candidates have applied yet.</div>'}
+      </div>
+    </div>
+  `;
+}
+
+function formatStatus(status: string): string {
+  switch (status) {
+    case 'applied': return 'Applied';
+    case 'under_review': return 'Under Review';
+    case 'shortlisted': return 'Shortlisted';
+    case 'interview': return 'Interview Scheduled';
+    case 'selected': return 'Selected';
+    case 'rejected': return 'Rejected';
+    case 'withdrawn': return 'Withdrawn';
+    default: return status;
+  }
+}
+
+function formatJobStatus(status: string): string {
+  switch (status) {
+    case 'draft': return 'Draft';
+    case 'pending_review': return 'Pending Review';
+    case 'changes_requested': return 'Changes Requested';
+    case 'approved': return 'Live';
+    case 'paused': return 'Paused';
+    case 'removed': return 'Removed';
+    default: return status;
+  }
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function escapeHtml(text: string = ''): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }

@@ -1,9 +1,11 @@
-import { Job, Application } from '../types';
+import { Job, Application, Report, AdminAuditLog } from '../types';
 import { ALIFEO_LOGO_BASE64 } from '../logo-base64';
 
 export function renderAdminPage(
   jobs: Job[],
   applications: Application[],
+  reports: Report[],
+  auditLogs: AdminAuditLog[],
   isAuthenticated: boolean,
   errorMessage: string = ''
 ): string {
@@ -13,7 +15,7 @@ export function renderAdminPage(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Login - Alifeo Job</title>
+  <title>Admin Login - Alifeo Jobs Moderation</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -36,8 +38,8 @@ export function renderAdminPage(
 <body>
   <div class="login-card">
     <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="logo">
-    <h2>Alifeo Job Admin</h2>
-    <p>Super Admin control center to manage listings, approvals & candidates.</p>
+    <h2>Alifeo Jobs Moderation</h2>
+    <p>Super Admin control center to approve jobs, review safety reports & manage audit logs.</p>
     
     ${errorMessage ? `<div class="error-box">${errorMessage}</div>` : ''}
 
@@ -60,21 +62,27 @@ export function renderAdminPage(
     <tr id="job-row-${j.id}">
       <td>
         <div style="font-weight: 700; color: #1e293b;">${escapeHtml(j.title)}</div>
-        <div style="font-size: 12px; color: #64748b;">${escapeHtml(j.company)} &bull; ${escapeHtml(j.city)} &bull; ${j.work_mode.toUpperCase()}</div>
+        <div style="font-size: 12px; color: #64748b;">${escapeHtml(j.company_name)} &bull; ${escapeHtml(j.city)} &bull; ${j.work_mode.toUpperCase()}</div>
       </td>
       <td>
-        <span class="badge ${j.job_type === 'internship' ? 'badge-internship' : 'badge-fulltime'}">${j.job_type === 'internship' ? 'Internship' : 'Full Time'}</span>
-        <div style="font-size: 12px; color: #19563e; font-weight: 600; margin-top: 4px;">${escapeHtml(j.stipend_salary)}</div>
+        <span class="badge ${j.job_type === 'internship' ? 'badge-internship' : 'badge-fulltime'}">${j.job_type === 'internship' ? 'Internship' : 'Job'}</span>
+        <div style="font-size: 12px; color: #19563e; font-weight: 600; margin-top: 4px;">${escapeHtml(j.salary_display)}</div>
       </td>
       <td>
-        <span class="status-pill status-${j.status}">${j.status === 'approved' ? 'Live & Verified' : 'Pending Review'}</span>
-        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Phone: ${escapeHtml(j.employer_phone || 'Alifeo Internal')}</div>
+        <span class="status-pill status-${j.status}">${formatJobStatus(j.status)}</span>
+        <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Poster: ${escapeHtml(j.employer_phone || 'Alifeo')}</div>
       </td>
-      <td style="text-align: right;">
+      <td style="text-align: right; white-space: nowrap;">
         ${j.status === 'pending_review' ? `
-          <button class="btn btn-sm btn-approve" onclick="approveJob('${j.id}')">Approve & Make Live</button>
-        ` : ''}
-        <button class="btn btn-sm btn-delete" onclick="deleteJob('${j.id}')">Delete</button>
+          <button class="btn btn-sm btn-approve" onclick="approveJob('${j.id}')">Approve Live</button>
+          <button class="btn btn-sm btn-outline" onclick="requestChanges('${j.id}')">Request Changes</button>
+          <button class="btn btn-sm btn-delete" onclick="rejectJob('${j.id}')">Reject</button>
+        ` : j.status === 'approved' ? `
+          <button class="btn btn-sm btn-outline" onclick="pauseJob('${j.id}')">Pause</button>
+          <button class="btn btn-sm btn-delete" onclick="removeJob('${j.id}')">Remove</button>
+        ` : `
+          <button class="btn btn-sm btn-approve" onclick="approveJob('${j.id}')">Re-Approve</button>
+        `}
       </td>
     </tr>
   `).join('');
@@ -84,28 +92,50 @@ export function renderAdminPage(
       <td>
         <div style="font-weight: 700; color: #1e293b;">${escapeHtml(a.candidate_name)}</div>
         <div style="font-size: 12px; color: #64748b;">Phone: <strong>${escapeHtml(a.candidate_phone)}</strong></div>
-        ${a.candidate_email ? `<div style="font-size: 12px; color: #64748b;">Email: ${escapeHtml(a.candidate_email)}</div>` : ''}
       </td>
       <td>
-        <div style="font-weight: 600; color: #19563e;">${escapeHtml(a.job_title)}</div>
-        <div style="font-size: 12px; color: #64748b;">${escapeHtml(a.company)}</div>
+        <div style="font-weight: 600; color: #19563e;">${escapeHtml(a.job_id)}</div>
       </td>
       <td>
         <span class="app-status app-status-${a.status}">${formatStatus(a.status)}</span>
-        ${a.assignment_submission ? `<div style="margin-top: 4px;"><a href="${escapeHtml(a.assignment_submission)}" target="_blank" style="font-size: 11px; color: #0284c7; text-decoration: underline;">View Assignment &rarr;</a></div>` : ''}
       </td>
       <td>
-        <a href="${escapeHtml(a.resume_url)}" target="_blank" class="btn btn-sm btn-outline">
+        <a href="/api/resumes/${a.resume_id}/view" target="_blank" class="btn btn-sm btn-outline">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          View Resume
+          Snapshot
         </a>
-        ${a.portfolio_url ? `
-          <a href="${escapeHtml(a.portfolio_url)}" target="_blank" class="btn btn-sm btn-outline" style="margin-left: 4px;">Portfolio</a>
-        ` : ''}
       </td>
       <td style="font-size: 12px; color: #94a3b8;">
         ${new Date(a.created_at).toLocaleDateString()}
       </td>
+    </tr>
+  `).join('');
+
+  const reportsListHtml = reports.map(r => `
+    <tr>
+      <td>
+        <span class="status-pill status-${r.status}">${r.status.toUpperCase()}</span>
+      </td>
+      <td>
+        <div style="font-weight: 700; color: #b91c1c;">${escapeHtml(r.reason_category)}</div>
+        <div style="font-size: 12px; color: #64748b;">Target: ${escapeHtml(r.target_type)} (${escapeHtml(r.target_id)})</div>
+      </td>
+      <td style="font-size: 13px; color: #334155;">
+        ${escapeHtml(r.description || 'No description provided')}
+      </td>
+      <td style="font-size: 12px; color: #94a3b8;">
+        ${escapeHtml(r.reporter_phone)}
+      </td>
+    </tr>
+  `).join('');
+
+  const auditLogsHtml = auditLogs.map(l => `
+    <tr>
+      <td style="font-size: 12px; color: #64748b;">${new Date(l.created_at).toLocaleString()}</td>
+      <td style="font-weight: 700; color: #19563e;">${escapeHtml(l.action)}</td>
+      <td style="font-size: 13px;">${escapeHtml(l.target_type)}: <strong>${escapeHtml(l.target_id)}</strong></td>
+      <td style="font-size: 12px; color: #475569;">${escapeHtml(l.reason || '-')}</td>
+      <td style="font-size: 12px;">${l.previous_status || '-'} &rarr; <strong>${l.new_status || '-'}</strong></td>
     </tr>
   `).join('');
 
@@ -114,7 +144,7 @@ export function renderAdminPage(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Super Admin Dashboard - Alifeo Job</title>
+  <title>Super Admin Moderation - Alifeo Jobs</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -130,18 +160,18 @@ export function renderAdminPage(
     .btn-logout:hover { background: rgba(255,255,255,0.25); }
 
     .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; }
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
     .stat-card { background: #ffffff; padding: 20px; border-radius: 14px; border: 1px solid #e2e8f0; }
-    .stat-label { font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-label { font-size: 12px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
     .stat-value { font-size: 28px; font-weight: 800; color: #19563E; margin-top: 6px; }
 
     .section-card { background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; margin-bottom: 30px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03); }
     .section-header { padding: 18px 24px; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; }
-    .section-title { font-size: 18px; font-weight: 700; color: #0f172a; }
+    .section-title { font-size: 17px; font-weight: 800; color: #0f172a; }
 
     table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f8fafc; padding: 12px 20px; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
-    td { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    th { background: #f8fafc; padding: 12px 20px; font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; border-bottom: 1px solid #e2e8f0; }
+    td { padding: 14px 20px; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
     tr:hover { background: #fbfcfe; }
 
     .badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
@@ -151,34 +181,26 @@ export function renderAdminPage(
     .status-pill { display: inline-block; padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 700; }
     .status-approved { background: #ecfdf5; color: #059669; }
     .status-pending_review { background: #fef3c7; color: #b45309; }
+    .status-changes_requested { background: #ffedd5; color: #c2410c; }
+    .status-rejected { background: #fee2e2; color: #b91c1c; }
+    .status-paused { background: #f1f5f9; color: #475569; }
 
-    .app-status { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; }
-    .app-status-applied { background: #f1f5f9; color: #475569; }
-    .app-status-under_review { background: #e0f2fe; color: #0369a1; }
-    .app-status-assignment_given { background: #fef3c7; color: #b45309; }
-    .app-status-shortlisted { background: #ede9fe; color: #6d28d9; }
-    .app-status-interview { background: #fce7f3; color: #be185d; }
-    .app-status-hired { background: #ecfdf5; color: #059669; }
-    .app-status-rejected { background: #fee2e2; color: #b91c1c; }
-
-    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: 0.15s ease; }
-    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; border: none; transition: 0.15s ease; }
     .btn-approve { background: #19563E; color: #ffffff; }
     .btn-approve:hover { background: #134532; }
-    .btn-delete { background: #fee2e2; color: #b91c1c; margin-left: 6px; }
+    .btn-delete { background: #fee2e2; color: #b91c1c; margin-left: 4px; }
     .btn-delete:hover { background: #fecaca; }
-    .btn-outline { background: #ffffff; border: 1.5px solid #e2e8f0; color: #334155; }
-    .btn-outline:hover { border-color: #cbd5e1; background: #f8fafc; }
+    .btn-outline { background: #ffffff; border: 1px solid #cbd5e1; color: #334155; margin-left: 4px; }
   </style>
 </head>
 <body>
   <header class="navbar">
     <a href="/" class="nav-brand">
       <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo">
-      <div class="nav-title">Alifeo Job &bull; Super Admin</div>
+      <div class="nav-title">Alifeo Jobs &bull; Moderation Console</div>
     </a>
     <div class="nav-actions">
-      <a href="/" target="_blank" class="btn-logout" style="background: rgba(255,255,255,0.2);">View Live Portal &rarr;</a>
+      <a href="/" target="_blank" class="btn-logout" style="background: rgba(255,255,255,0.2);">Live Portal &rarr;</a>
       <a href="/api/admin/logout" class="btn-logout">Sign Out</a>
     </div>
   </header>
@@ -190,42 +212,64 @@ export function renderAdminPage(
         <div class="stat-value">${jobs.length}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Pending Approval</div>
+        <div class="stat-label">Pending Review</div>
         <div class="stat-value" style="color: ${pendingJobs.length > 0 ? '#b45309' : '#19563E'}">${pendingJobs.length}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Total Applications</div>
-        <div class="stat-value">${applications.length}</div>
+        <div class="stat-label">Live Active Jobs</div>
+        <div class="stat-value">${approvedJobs.length}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">Live Active Roles</div>
-        <div class="stat-value">${approvedJobs.length}</div>
+        <div class="stat-label">Trust & Safety Reports</div>
+        <div class="stat-value" style="color: ${reports.length > 0 ? '#dc2626' : '#19563E'}">${reports.length}</div>
       </div>
     </div>
 
-    <!-- Job Listings Section -->
+    <!-- Job Moderation Queue -->
     <div class="section-card">
       <div class="section-header">
-        <div class="section-title">Manage Job Listings & Company Approvals</div>
+        <div class="section-title">Job Postings Moderation & Mandatory Review Queue</div>
       </div>
       <div style="overflow-x: auto;">
         <table>
           <thead>
             <tr>
               <th>Job / Company</th>
-              <th>Type / Stipend</th>
+              <th>Type / Pay</th>
               <th>Status</th>
-              <th style="text-align: right;">Action</th>
+              <th style="text-align: right;">Moderation Action</th>
             </tr>
           </thead>
           <tbody>
-            ${jobsListHtml || '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 30px;">No jobs listed yet.</td></tr>'}
+            ${jobsListHtml || '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 30px;">No jobs listed.</td></tr>'}
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Candidate Applications Section -->
+    <!-- Trust & Safety Reports -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">Trust & Safety Reports (${reports.length})</div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Reason Category</th>
+              <th>Description</th>
+              <th>Reporter</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${reportsListHtml || '<tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 24px;">No safety abuse reports. Clean platform!</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Candidate Applications Snapshot -->
     <div class="section-card">
       <div class="section-header">
         <div class="section-title">All Candidate Applications (${applications.length})</div>
@@ -235,14 +279,37 @@ export function renderAdminPage(
           <thead>
             <tr>
               <th>Candidate Info</th>
-              <th>Applied Role</th>
+              <th>Job ID</th>
               <th>Status</th>
-              <th>Resume</th>
+              <th>Snapshot Resume</th>
               <th>Date</th>
             </tr>
           </thead>
           <tbody>
-            ${applicationsListHtml || '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 30px;">No applications submitted yet.</td></tr>'}
+            ${applicationsListHtml || '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 24px;">No applications submitted yet.</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Audit Logs -->
+    <div class="section-card">
+      <div class="section-header">
+        <div class="section-title">Admin Moderation Audit Logs</div>
+      </div>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Reason</th>
+              <th>Status Transition</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${auditLogsHtml || '<tr><td colspan="5" style="text-align: center; color: #94a3b8; padding: 20px;">No audit logs yet.</td></tr>'}
           </tbody>
         </table>
       </div>
@@ -256,7 +323,6 @@ export function renderAdminPage(
         const res = await fetch('/api/admin/jobs/' + jobId + '/approve', { method: 'POST' });
         const data = await res.json();
         if (data.success) {
-          alert('Job approved successfully!');
           window.location.reload();
         } else {
           alert(data.error || 'Failed to approve');
@@ -266,15 +332,70 @@ export function renderAdminPage(
       }
     }
 
-    async function deleteJob(jobId) {
-      if (!confirm('Are you sure you want to delete this job listing?')) return;
+    async function rejectJob(jobId) {
+      const reason = prompt('Enter rejection reason:');
+      if (!reason) return;
       try {
-        const res = await fetch('/api/admin/jobs/' + jobId + '/delete', { method: 'POST' });
+        const res = await fetch('/api/admin/jobs/' + jobId + '/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason })
+        });
         const data = await res.json();
         if (data.success) {
-          document.getElementById('job-row-' + jobId)?.remove();
+          window.location.reload();
         } else {
-          alert(data.error || 'Failed to delete');
+          alert(data.error || 'Failed to reject');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    async function requestChanges(jobId) {
+      const feedback = prompt('Enter changes feedback for employer:');
+      if (!feedback) return;
+      try {
+        const res = await fetch('/api/admin/jobs/' + jobId + '/request-changes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ feedback })
+        });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to request changes');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    async function pauseJob(jobId) {
+      if (!confirm('Pause this live job?')) return;
+      try {
+        const res = await fetch('/api/admin/jobs/' + jobId + '/pause', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to pause');
+        }
+      } catch (e) {
+        alert('Network error');
+      }
+    }
+
+    async function removeJob(jobId) {
+      if (!confirm('Remove this job from the platform?')) return;
+      try {
+        const res = await fetch('/api/admin/jobs/' + jobId + '/remove', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to remove');
         }
       } catch (e) {
         alert('Network error');
@@ -285,15 +406,27 @@ export function renderAdminPage(
 </html>`;
 }
 
+function formatJobStatus(status: string): string {
+  switch (status) {
+    case 'draft': return 'Draft';
+    case 'pending_review': return 'Pending Review';
+    case 'changes_requested': return 'Changes Requested';
+    case 'approved': return 'Live';
+    case 'paused': return 'Paused';
+    case 'removed': return 'Removed';
+    default: return status;
+  }
+}
+
 function formatStatus(status: string): string {
   switch (status) {
     case 'applied': return 'Applied';
     case 'under_review': return 'Under Review';
-    case 'assignment_given': return 'Assignment Given';
     case 'shortlisted': return 'Shortlisted';
-    case 'interview': return 'Interview Scheduled';
-    case 'hired': return 'Hired';
+    case 'interview': return 'Interview';
+    case 'selected': return 'Selected';
     case 'rejected': return 'Rejected';
+    case 'withdrawn': return 'Withdrawn';
     default: return status;
   }
 }
