@@ -2,40 +2,42 @@ export const JOB_PORTAL_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
   :root {
-    --alifeo-green: #19563e;
-    --alifeo-dark: #0f3d2a;
+    --accent-lime: #CFF92D;
+    --accent-lime-hover: #bde81d;
+    --accent-lime-tint: #f4fdc7;
+    --alifeo-forest: #064E3B;
+    --alifeo-dark: #0B3B24;
     --alifeo-emerald: #059669;
-    --alifeo-light-green: #ecfdf5;
-    --alifeo-border-green: #a7f3d0;
-    --gold: #d97706;
-    --gold-light: #fef3c7;
+    --alifeo-light: #F0FDF4;
     
-    --bg-page: #f8fafc;
-    --card-bg: #ffffff;
-    --border-color: #e2e8f0;
-    --border-hover: #cbd5e1;
+    --bg-app: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --border-subtle: #F1F5F9;
+    --border-card: #E2E8F0;
     
-    --text-title: #0f172a;
-    --text-body: #334155;
-    --text-muted: #64748b;
+    --text-primary: #0F172A;
+    --text-secondary: #334155;
+    --text-muted: #64748B;
   }
 
   * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    background-color: var(--bg-page);
-    color: var(--text-body);
+    background-color: var(--bg-app);
+    color: var(--text-primary);
     font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    align-items: center;
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
-    padding-bottom: 70px;
+    padding-bottom: 90px;
   }
 
   a {
@@ -43,901 +45,673 @@ export const JOB_PORTAL_STYLES = `
     text-decoration: none;
   }
 
-  /* Top decorative green bar */
-  .top-brand-bar {
-    height: 3px;
-    background: linear-gradient(90deg, #19563e 0%, #059669 50%, #10b981 100%);
+  /* App Shell Container (Mobile-first app canvas) */
+  .app-canvas {
     width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background: #FFFFFF;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+    position: relative;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Header Navbar */
-  .navbar {
+  @media (min-width: 768px) {
+    body {
+      background-color: #E2E8F0;
+      padding-top: 20px;
+      padding-bottom: 40px;
+    }
+    .app-canvas {
+      border-radius: 36px;
+      overflow: hidden;
+      min-height: 900px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+      border: 6px solid #FFFFFF;
+    }
+  }
+
+  /* Top Status Bar (Native mobile aesthetic) */
+  .status-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
-    background: #19563e;
-    color: #ffffff;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: 12px 20px 6px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
   }
-
-  .nav-brand {
+  .status-bar-icons {
     display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .nav-logo-box {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    text-decoration: none;
-  }
-
-  .nav-logo {
-    height: 32px;
-    width: 32px;
-    border-radius: 6px;
-    object-fit: cover;
-    display: block;
-  }
-
-  .nav-brand-title {
-    font-size: 19px;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.5px;
-  }
-
-  /* Header Location Pill (Zomato-style tap to change) */
-  .header-location-pill {
-    display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 100px;
-    padding: 6px 12px;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .header-location-pill:hover {
-    background: rgba(255, 255, 255, 0.25);
-  }
-  .header-location-pill .pin-icon {
-    color: #6ee7b7;
   }
 
-  /* Header User Avatar & Greeting */
-  .header-user-wrap {
+  /* App Header Bar */
+  .app-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: #FFFFFF;
   }
-  .header-greeting {
-    font-size: 13px;
-    color: #ffffff;
-    font-weight: 500;
+  .app-brand-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
-  .header-greeting strong {
-    font-weight: 800;
-    color: #a7f3d0;
-  }
-  .header-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid #a7f3d0;
-    overflow: hidden;
+  .app-logo-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--accent-lime);
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #064e3b;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    transition: transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(207, 249, 45, 0.4);
+    overflow: hidden;
   }
-  .header-avatar:hover {
-    transform: scale(1.08);
-  }
-  .header-avatar-img {
+  .app-logo-badge img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
-  .header-avatar-initials {
+  .app-brand-text {
+    font-size: 22px;
     font-weight: 800;
-    font-size: 14px;
-    color: #ffffff;
+    color: var(--alifeo-forest);
+    letter-spacing: -0.6px;
   }
 
-  .nav-tagline {
-    display: none;
-  }
-
-  .nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  /* Role Switcher Pill */
-  .role-toggle-pill {
-    display: inline-flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 100px;
-    padding: 2px;
-    font-size: 12px;
-    font-weight: 700;
-  }
-
-  .role-btn {
-    padding: 5px 12px;
-    border-radius: 100px;
-    border: none;
-    background: transparent;
-    color: #cbd5e1;
-    cursor: pointer;
-    transition: 0.15s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .role-btn.active {
-    background: #ffffff;
-    color: #19563e;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
-  }
-
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 9px 16px;
-    border-radius: 8px;
-    font-size: 13px;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    text-decoration: none;
-  }
-
-  .btn-primary {
-    background: #19563e;
-    color: #ffffff;
-  }
-  .btn-primary:hover {
-    background: #134532;
-  }
-
-  .btn-accent {
-    background: #d97706;
-    color: #ffffff;
-  }
-  .btn-accent:hover {
-    background: #b45309;
-  }
-
-  .btn-outline {
-    background: transparent;
-    border: 1.5px solid #e2e8f0;
-    color: #334155;
-  }
-  .btn-outline:hover {
-    border-color: #cbd5e1;
-    background: #f8fafc;
-  }
-
-  .btn-outline-white {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: #ffffff;
-  }
-  .btn-outline-white:hover {
-    background: rgba(255, 255, 255, 0.22);
-  }
-
-  .btn-sm {
-    padding: 6px 12px;
-    font-size: 12px;
-    border-radius: 6px;
-  }
-
-  .btn-danger {
-    background: #fee2e2;
-    color: #b91c1c;
-    border: 1px solid #fca5a5;
-  }
-  .btn-danger:hover {
-    background: #fecaca;
-  }
-
-  /* Bottom Mobile Navigation */
-  .bottom-nav {
-    display: none;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #ffffff;
-    border-top: 1px solid #e2e8f0;
-    padding: 8px 12px;
-    z-index: 999;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-    justify-content: space-around;
-  }
-
-  .bottom-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    background: none;
-    border: none;
-  }
-
-  .bottom-nav-item.active {
-    color: #19563e;
-    font-weight: 700;
-  }
-
-  /* Main Container */
-  .main-container {
-    max-width: 1160px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 16px;
-    flex: 1;
-  }
-
-  /* View Switcher Bar */
-  .view-switcher-bar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .mode-toggle-group {
-    display: inline-flex;
-    background: #e2e8f0;
-    padding: 3px;
-    border-radius: 10px;
-  }
-
-  .mode-toggle-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 8px;
-    border: none;
-    font-size: 13px;
-    font-weight: 700;
-    color: #475569;
-    background: transparent;
-    cursor: pointer;
-    transition: 0.15s;
-  }
-
-  .mode-toggle-btn.active {
-    background: #ffffff;
-    color: #19563e;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-  }
-
-  /* Search & Filter Bar */
-  .search-hero-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 16px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-    margin-bottom: 16px;
-  }
-
-  .search-input-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .search-field {
-    flex: 1;
-    min-width: 180px;
-    position: relative;
-  }
-
-  .search-field input, .search-field select {
-    width: 100%;
-    padding: 10px 14px 10px 36px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 14px;
-    outline: none;
-    color: #1e293b;
-    background: #ffffff;
-    transition: 0.15s;
-  }
-
-  .search-field input:focus, .search-field select:focus {
-    border-color: #19563e;
-    box-shadow: 0 0 0 3px rgba(25, 86, 62, 0.12);
-  }
-
-  .search-icon {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #94a3b8;
-  }
-
-  .filter-pills-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 12px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-
-  .filter-pill {
-    padding: 5px 12px;
-    border-radius: 100px;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid #e2e8f0;
-    white-space: nowrap;
-    transition: 0.15s;
-  }
-
-  .filter-pill.active {
-    background: #19563e;
-    color: #ffffff;
-    border-color: #19563e;
-  }
-
-  /* Radius Selector Bar */
-  .radius-selector-bar {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed #e2e8f0;
-    overflow-x: auto;
-  }
-
-  .radius-label {
-    font-size: 12px;
-    font-weight: 700;
-    color: #475569;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    white-space: nowrap;
-    margin-right: 4px;
-  }
-
-  .radius-pill {
-    padding: 4px 10px;
-    border-radius: 6px;
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-size: 11px;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: 0.15s;
-  }
-
-  .radius-pill.active {
-    background: #0284c7;
-    color: #ffffff;
-    border-color: #0284c7;
-  }
-
-  /* ============================================================= */
-  /* HIRING MAP COMPONENT & MARKERS */
-  /* ============================================================= */
-  .map-wrapper-card {
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.04);
-    position: relative;
-    margin-bottom: 20px;
-  }
-
-  #hiringMap {
-    height: 480px;
-    width: 100%;
-    z-index: 10;
-  }
-
-  /* GPS Floating Button */
-  .btn-gps-fab {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    z-index: 500;
-    background: #ffffff;
-    border: 2px solid #19563e;
-    color: #19563e;
+  .btn-icon-round {
     width: 40px;
     height: 40px;
     border-radius: 50%;
+    background: #F8FAFC;
+    border: 1px solid var(--border-card);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    transition: 0.2s ease;
+    position: relative;
+    transition: all 0.2s ease;
   }
-
-  .btn-gps-fab:hover {
-    background: #19563e;
-    color: #ffffff;
+  .btn-icon-round:hover {
+    background: #F1F5F9;
   }
-
-  /* Location Info Banner on Map */
-  .map-location-banner {
+  .unread-dot {
     position: absolute;
-    bottom: 14px;
-    left: 14px;
-    right: 14px;
-    z-index: 500;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    padding: 8px 14px;
+    top: 6px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: #10B981;
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+  }
+
+  /* Greeting & Headline */
+  .hero-greeting-section {
+    padding: 12px 20px 8px 20px;
+    background: #FFFFFF;
+  }
+  .greeting-sub {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
+    gap: 6px;
+  }
+  .greeting-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    margin-top: 2px;
+  }
+  .greeting-title span {
+    color: var(--alifeo-forest);
+  }
+
+  /* Location Selector Row */
+  .app-location-row {
+    padding: 8px 20px 14px 20px;
+    background: #FFFFFF;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .loc-icon-pin {
+    color: var(--alifeo-forest);
+  }
+  .loc-details-wrap {
+    display: flex;
+    flex-direction: column;
+  }
+  .loc-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .loc-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Dual Action Hero Banners (Side-by-Side as in mockup) */
+  .dual-banners-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 6px 20px 16px 20px;
+    background: #FFFFFF;
+  }
+  .banner-card {
+    border-radius: 20px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
     justify-content: space-between;
-    font-size: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    min-height: 118px;
+  }
+  .banner-card:hover {
+    transform: translateY(-2px);
+  }
+  
+  .banner-hire {
+    background: var(--accent-lime);
+    box-shadow: 0 4px 14px rgba(207, 249, 45, 0.35);
+  }
+  .banner-job {
+    background: #F1F5F9;
+    border: 1px solid var(--border-card);
   }
 
-  /* Clean Leaflet App UI: Hide watermarks, wordmarks, and attribution boxes */
-  .leaflet-control-attribution {
-    display: none !important;
+  .banner-top-visual {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 6px;
   }
-  .leaflet-container {
-    font-family: inherit;
-    outline: none !important;
+  .banner-icon-badge {
+    font-size: 26px;
   }
 
-  /* Custom Leaflet Marker Icon */
-  .company-marker-pin {
-    background: #ffffff;
-    border: 2px solid #19563e;
+  .banner-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--alifeo-dark);
+    line-height: 1.2;
+  }
+  .banner-job .banner-title {
+    color: var(--text-primary);
+  }
+  .banner-sub {
+    font-size: 11px;
+    font-weight: 600;
+    color: #166534;
+    margin-top: 3px;
+  }
+  .banner-job .banner-sub {
+    color: var(--text-muted);
+  }
+
+  .banner-arrow-circle {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
-    width: 44px;
-    height: 44px;
+    background: var(--alifeo-forest);
+    color: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+  }
+
+  /* Floating Search Pill Bar */
+  .search-floating-wrap {
+    padding: 0 20px 14px 20px;
+    background: #FFFFFF;
     position: relative;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    z-index: 100;
+  }
+  .search-pill-box {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border: 1.5px solid #E2E8F0;
+    border-radius: 100px;
+    padding: 5px 6px 5px 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+  .search-pill-box:focus-within {
+    border-color: var(--alifeo-forest);
+    box-shadow: 0 4px 20px rgba(6, 78, 59, 0.12);
+  }
+  .search-pill-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: transparent;
+  }
+  .search-pill-input::placeholder {
+    color: #94A3B8;
+  }
+  .search-filter-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--accent-lime);
+    border: none;
+    color: var(--alifeo-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(207, 249, 45, 0.4);
     transition: transform 0.15s ease;
   }
-
-  .company-marker-pin:hover {
-    transform: scale(1.15);
-    border-color: #d97706;
+  .search-filter-btn:hover {
+    transform: scale(1.05);
   }
 
-  .company-marker-img {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    object-fit: cover;
+  /* Interactive Live Map Section (Alifeo FBS Mobile View) */
+  .map-section-wrap {
+    position: relative;
+    width: 100%;
+    height: 380px;
+    background: #E5E7EB;
+    overflow: hidden;
+  }
+  #hiringMap {
+    width: 100%;
+    height: 100%;
   }
 
-  .company-marker-initials {
-    width: 32px;
-    height: 32px;
+  /* Map Floating Pill (Top-Left) */
+  .map-pill-location {
+    position: absolute;
+    top: 14px;
+    left: 16px;
+    z-index: 400;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid #E2E8F0;
+    border-radius: 100px;
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
+  .map-pill-dot {
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    background: #19563e;
-    color: #ffffff;
-    font-weight: 800;
-    font-size: 13px;
+    background: #059669;
+  }
+
+  /* Map GPS FAB (Top-Right) */
+  .map-gps-circle-btn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    z-index: 400;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: transform 0.2s ease;
+  }
+  .map-gps-circle-btn:hover {
+    background: #F8FAFC;
+    transform: rotate(90deg);
   }
 
-  .company-marker-badge {
-    position: absolute;
-    top: -6px;
-    right: -6px;
-    background: #d97706;
-    color: #ffffff;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 5px;
-    border-radius: 10px;
-    border: 1.5px solid #ffffff;
-    line-height: 1;
-  }
-
-  /* Candidate Pulsating User GPS Location Pin */
+  /* Leaflet Map Pulsing GPS User Marker */
   .user-gps-container {
     background: transparent;
     border: none;
   }
   .user-gps-marker {
-    width: 20px;
-    height: 20px;
-    background: #2563eb;
-    border: 3px solid #ffffff;
+    width: 22px;
+    height: 22px;
+    background: #2563EB;
+    border: 3.5px solid #FFFFFF;
     border-radius: 50%;
     position: relative;
-    box-shadow: 0 0 10px rgba(37, 99, 235, 0.7);
+    box-shadow: 0 0 14px rgba(37, 99, 235, 0.7);
   }
   .user-gps-pulse {
     position: absolute;
-    top: -10px;
-    left: -10px;
-    width: 34px;
-    height: 34px;
+    top: -12px;
+    left: -12px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2.5px solid #3b82f6;
+    border: 2px solid #3B82F6;
     animation: gpsPulse 2s infinite ease-out;
   }
   @keyframes gpsPulse {
     0% { transform: scale(0.6); opacity: 1; }
-    100% { transform: scale(2.2); opacity: 0; }
+    100% { transform: scale(2.4); opacity: 0; }
   }
 
-  /* Horizontal Category Scroll Bar */
-  .category-scroll-bar {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 10px 0 6px 0;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+  /* Green Teardrop Company Location Pin */
+  .custom-company-pin-wrapper {
+    background: transparent;
+    border: none;
   }
-  .category-scroll-bar::-webkit-scrollbar {
-    display: none;
-  }
-  .category-chip {
-    white-space: nowrap;
-    padding: 7px 14px;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 100px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  }
-  .category-chip:hover {
-    border-color: #19563e;
-    color: #19563e;
-  }
-  .category-chip.active {
-    background: #19563e;
-    border-color: #19563e;
-    color: #ffffff;
-    box-shadow: 0 2px 8px rgba(25, 86, 62, 0.3);
-  }
-
-  /* Quick Resume Action Card */
-  .quick-resume-card {
-    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-    border: 1.5px dashed #10b981;
-    border-radius: 12px;
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
-  }
-  .quick-resume-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .quick-resume-text strong {
-    font-size: 13px;
-    color: #065f46;
-    display: block;
-  }
-  .quick-resume-text span {
-    font-size: 11px;
-    color: #047857;
-  }
-
-  /* Profile Photo Upload Circle */
-  .profile-photo-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  .profile-photo-circle {
-    width: 88px;
-    height: 88px;
-    border-radius: 50%;
-    border: 3px solid #19563e;
-    background: #f1f5f9;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
+  .company-teardrop-pin {
+    width: 36px;
+    height: 36px;
+    border-radius: 50% 50% 50% 0;
+    background: #10B981;
+    border: 2.5px solid #FFFFFF;
+    transform: rotate(-45deg);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+    cursor: pointer;
+    transition: transform 0.15s ease;
   }
-  .profile-photo-circle:hover {
-    transform: scale(1.05);
-    border-color: #059669;
+  .company-teardrop-pin:hover {
+    transform: rotate(-45deg) scale(1.15);
   }
-  .profile-photo-img {
-    width: 100%;
-    height: 100%;
+  .company-teardrop-inner {
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 14px;
+  }
+  .company-teardrop-logo {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
     object-fit: cover;
   }
-  .profile-photo-placeholder {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    color: #64748b;
-    font-size: 10px;
+
+  /* Floating Map Job Callout Badges (as in mockup!) */
+  .map-callout-badge {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 6px 12px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    font-size: 11px;
     font-weight: 700;
-  }
-
-  /* Company Logo Upload Box */
-  .company-logo-preview {
-    width: 54px;
-    height: 54px;
-    border-radius: 10px;
-    border: 2px dashed #19563e;
-    background: #ecfdf5;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    transition: all 0.2s ease;
+    transition: transform 0.15s ease;
   }
-  .company-logo-preview:hover {
-    background: #d1fae5;
+  .map-callout-badge:hover {
+    transform: translateY(-2px);
+    border-color: var(--alifeo-forest);
   }
-
-  /* Bottom Sheet Preview (Mobile) / Side Panel (Desktop) */
-  .map-preview-sheet {
-    position: absolute;
-    top: 14px;
-    right: 14px;
-    width: 340px;
-    max-height: 450px;
-    background: #ffffff;
-    border-radius: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
-    border: 1px solid #cbd5e1;
-    z-index: 600;
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  .map-callout-salary {
+    color: var(--alifeo-forest);
+    font-weight: 800;
   }
 
-  @keyframes slideInRight {
-    from { transform: translateX(20px); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+  /* Bottom Drawer / Nearby Jobs Sheet */
+  .nearby-drawer {
+    background: #FFFFFF;
+    border-radius: 28px 28px 0 0;
+    margin-top: -24px;
+    position: relative;
+    z-index: 500;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.08);
+    padding: 14px 20px 24px 20px;
   }
-
-  .map-preview-sheet.active {
-    display: flex;
+  .drawer-handle-bar {
+    width: 44px;
+    height: 4.5px;
+    background: #CBD5E1;
+    border-radius: 100px;
+    margin: 0 auto 14px auto;
   }
-
-  .map-preview-header {
-    padding: 12px 16px;
-    background: #19563e;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .map-preview-body {
-    padding: 14px 16px;
-    overflow-y: auto;
-    font-size: 13px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  /* Two Column Feed or Dashboard */
-  .layout-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-
-  @media (min-width: 900px) {
-    .layout-grid {
-      grid-template-columns: 2fr 1fr;
-    }
-  }
-
-  /* Section Header */
-  .section-header-row {
+  .drawer-header-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 14px;
   }
-
-  .section-heading {
-    font-size: 17px;
+  .drawer-title {
+    font-size: 18px;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 8px;
   }
-
-  .count-badge {
-    font-size: 11px;
+  .drawer-see-all {
+    font-size: 13px;
     font-weight: 700;
-    background: #ecfdf5;
     color: #059669;
-    padding: 2px 8px;
-    border-radius: 100px;
-  }
-
-  /* Job Cards */
-  .job-card {
-    background: #ffffff;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 12px;
     cursor: pointer;
-    transition: all 0.18s ease;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
   }
 
-  .job-card:hover {
-    border-color: #19563e;
-    box-shadow: 0 6px 18px rgba(25, 86, 62, 0.08);
-    transform: translateY(-1px);
+  /* App Job Card (matching mockup!) */
+  .app-job-card {
+    background: #FFFFFF;
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    margin-bottom: 12px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
   }
-
-  .job-card.highlighted {
-    border-color: #0284c7;
-    background: #f0f9ff;
-    box-shadow: 0 0 0 2px #0284c7;
+  .app-job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   }
-
-  .job-card-top {
+  .app-card-top {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
     gap: 12px;
+    align-items: flex-start;
+  }
+  .app-company-thumbnail {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    background: #ECFDF5;
+    border: 1px solid #D1FAE5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .app-company-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .app-company-initials {
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--alifeo-forest);
   }
 
-  .job-card-title {
+  .app-card-meta {
+    flex: 1;
+  }
+  .app-company-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .verified-badge-green {
+    color: #10B981;
+    display: inline-flex;
+    align-items: center;
+  }
+  .app-job-title {
     font-size: 16px;
     font-weight: 800;
-    color: #0f172a;
-    line-height: 1.3;
+    color: var(--text-primary);
+    margin-top: 2px;
+    line-height: 1.25;
   }
-
-  .job-card-company {
-    font-size: 13px;
+  .app-loc-distance-row {
+    font-size: 12px;
     font-weight: 600;
-    color: #19563e;
-    margin-top: 3px;
+    color: var(--text-muted);
+    margin-top: 4px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .app-loc-distance-row strong {
+    color: #059669;
   }
 
-  .verified-badge {
-    display: inline-flex;
+  /* Tags & Lime Apply Button */
+  .app-card-bottom {
+    display: flex;
     align-items: center;
-    color: #0284c7;
-    font-size: 11px;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #F1F5F9;
   }
-
-  .distance-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
+  .app-tag-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .app-tag {
     font-size: 11px;
     font-weight: 700;
-    color: #0369a1;
-    background: #e0f2fe;
-    padding: 2px 7px;
-    border-radius: 6px;
-    margin-left: 6px;
+    padding: 4px 9px;
+    border-radius: 100px;
+    background: #F1F5F9;
+    color: #475569;
+  }
+  .app-tag-mode {
+    background: #ECFDF5;
+    color: #065F46;
   }
 
-  .job-card-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 12px 0 10px 0;
-  }
-
-  .tag {
+  /* ELECTRIC NEON LIME APPLY BUTTON */
+  .btn-apply-lime {
+    background: var(--accent-lime);
+    color: var(--alifeo-dark);
+    font-weight: 800;
+    font-size: 13px;
+    padding: 8px 18px;
+    border-radius: 100px;
+    border: none;
+    cursor: pointer;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: #f8fafc;
-    color: #475569;
-    border: 1px solid #e2e8f0;
+    box-shadow: 0 3px 10px rgba(207, 249, 45, 0.4);
+    transition: all 0.15s ease;
+  }
+  .btn-apply-lime:hover {
+    background: var(--accent-lime-hover);
+    transform: scale(1.04);
   }
 
-  .tag-salary {
-    background: #ecfdf5;
-    color: #065f46;
-    border-color: #a7f3d0;
-    font-weight: 700;
-  }
-
-  .tag-type {
-    background: #eff6ff;
-    color: #1e40af;
-    border-color: #bfdbfe;
-  }
-
-  .tag-mode {
-    background: #fef3c7;
-    color: #92400e;
-    border-color: #fde68a;
-  }
-
-  .job-card-footer {
+  /* Floating Bottom Navigation Bar (iOS pill style as in mockup!) */
+  .floating-bottom-nav {
+    position: fixed;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 440px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 100px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    border-top: 1px solid #f1f5f9;
-    padding-top: 10px;
-    font-size: 11px;
-    color: #94a3b8;
+    justify-content: space-around;
+    padding: 8px 12px;
+    z-index: 1000;
+  }
+  .nav-tab-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748B;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+  .nav-tab-item.active {
+    background: var(--accent-lime-tint);
+    color: var(--alifeo-dark);
   }
 
-  /* Modals */
+  /* Center Elevated Map FAB on Nav Bar */
+  .nav-center-map-fab {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: var(--accent-lime);
+    border: 3px solid #FFFFFF;
+    box-shadow: 0 4px 16px rgba(207, 249, 45, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--alifeo-dark);
+    cursor: pointer;
+    margin-top: -24px;
+    transition: transform 0.15s ease;
+  }
+  .nav-center-map-fab:hover {
+    transform: scale(1.08);
+  }
+
+  /* Modals (Clean App Bottom Sheets / Drawers) */
   .modal-overlay {
     position: fixed;
     top: 0;
@@ -948,318 +722,95 @@ export const JOB_PORTAL_STYLES = `
     backdrop-filter: blur(4px);
     z-index: 2000;
     display: none;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    padding: 16px;
+    padding: 0;
   }
-
   .modal-overlay.active {
     display: flex;
   }
-
   .modal-content {
-    background: #ffffff;
-    border-radius: 16px;
+    background: #FFFFFF;
     width: 100%;
-    max-width: 580px;
-    max-height: 90vh;
+    max-width: 480px;
+    border-radius: 28px 28px 0 0;
+    max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-    animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUpModal 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-
-  @keyframes modalPop {
-    from { transform: scale(0.95); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+  @keyframes slideUpModal {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
   }
-
   .modal-header {
-    padding: 18px 22px;
-    border-bottom: 1px solid #f1f5f9;
+    padding: 16px 20px;
+    border-bottom: 1px solid #F1F5F9;
     display: flex;
     align-items: center;
     justify-content: space-between;
     position: sticky;
     top: 0;
-    background: #ffffff;
+    background: #FFFFFF;
     z-index: 10;
   }
-
   .modal-title {
     font-size: 17px;
     font-weight: 800;
-    color: #0f172a;
+    color: var(--text-primary);
   }
-
   .modal-close-btn {
-    background: #f1f5f9;
+    background: #F1F5F9;
     border: none;
-    border-radius: 100px;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 18px;
+    color: #64748B;
     cursor: pointer;
-    color: #64748b;
   }
-
   .modal-body {
-    padding: 22px;
+    padding: 20px;
   }
 
-  .modal-footer {
-    padding: 14px 22px;
-    border-top: 1px solid #f1f5f9;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 10px;
-    background: #f8fafc;
-  }
-
-  /* Form Elements */
   .form-group {
     margin-bottom: 16px;
   }
-
   .form-label {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
-    color: #334155;
+    color: var(--text-secondary);
     margin-bottom: 6px;
   }
-
-  .form-label span {
-    color: #94a3b8;
-    font-weight: 500;
-    font-size: 11px;
-    margin-left: 4px;
-  }
-
   .form-control {
     width: 100%;
-    padding: 11px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #CBD5E1;
+    font-family: inherit;
     font-size: 14px;
-    color: #1e293b;
     outline: none;
-    transition: 0.15s;
-    background: #ffffff;
   }
-
   .form-control:focus {
-    border-color: #19563e;
-    box-shadow: 0 0 0 3px rgba(25, 86, 62, 0.12);
+    border-color: var(--alifeo-forest);
+    box-shadow: 0 0 0 3px rgba(6, 78, 59, 0.1);
   }
 
-  textarea.form-control {
-    min-height: 80px;
-    resize: vertical;
-  }
-
-  /* Resume Upload Box */
-  .resume-dropzone {
-    border: 2px dashed #cbd5e1;
-    border-radius: 12px;
-    padding: 24px;
-    text-align: center;
-    background: #f8fafc;
-    cursor: pointer;
-    transition: 0.18s;
-  }
-
-  .resume-dropzone:hover {
-    border-color: #19563e;
-    background: #ecfdf5;
-  }
-
-  .resume-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    border: 1.5px solid #a7f3d0;
-    background: #ecfdf5;
-    border-radius: 10px;
-    margin-top: 10px;
-  }
-
-  .resume-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .resume-name {
-    font-weight: 700;
-    font-size: 13px;
-    color: #065f46;
-  }
-
-  .resume-size {
-    font-size: 11px;
-    color: #047857;
-  }
-
-  /* Status Pills */
-  .status-pill {
-    display: inline-block;
-    padding: 3px 9px;
+  .btn-primary-app {
+    width: 100%;
+    padding: 13px;
     border-radius: 100px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .status-applied { background: #f1f5f9; color: #475569; }
-  .status-under_review { background: #e0f2fe; color: #0369a1; }
-  .status-shortlisted { background: #ede9fe; color: #6d28d9; }
-  .status-interview { background: #fce7f3; color: #be185d; }
-  .status-selected { background: #dcfce7; color: #15803d; }
-  .status-rejected { background: #fee2e2; color: #b91c1c; }
-  .status-withdrawn { background: #f3f4f6; color: #6b7280; }
-
-  .status-draft { background: #f1f5f9; color: #475569; }
-  .status-pending_review { background: #fef3c7; color: #b45309; }
-  .status-approved { background: #ecfdf5; color: #059669; }
-  .status-changes_requested { background: #ffedd5; color: #c2410c; }
-  .status-paused { background: #e2e8f0; color: #475569; }
-
-  /* Metrics Grid */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-  }
-
-  .metric-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-  }
-
-  .metric-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
-
-  .metric-value {
-    font-size: 26px;
+    background: var(--alifeo-forest);
+    color: #FFFFFF;
     font-weight: 800;
-    color: #19563e;
-    margin-top: 4px;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
   }
 
-  /* Chat Interface */
-  .chat-box {
-    display: flex;
-    flex-direction: column;
-    height: 380px;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    overflow: hidden;
-  }
-
-  .chat-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: #f8fafc;
-  }
-
-  .chat-bubble {
-    max-width: 80%;
-    padding: 10px 14px;
-    border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.4;
-  }
-
-  .chat-bubble.mine {
-    align-self: flex-end;
-    background: #19563e;
-    color: #ffffff;
-    border-bottom-right-radius: 2px;
-  }
-
-  .chat-bubble.theirs {
-    align-self: flex-start;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    color: #1e293b;
-    border-bottom-left-radius: 2px;
-  }
-
-  .chat-time {
-    font-size: 10px;
-    opacity: 0.7;
-    margin-top: 4px;
-    text-align: right;
-  }
-
-  .chat-input-row {
-    display: flex;
-    padding: 10px;
-    background: #ffffff;
-    border-top: 1px solid #e2e8f0;
-    gap: 8px;
-  }
-
-  .chat-input-row input {
-    flex: 1;
-    padding: 10px 14px;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 8px;
-    outline: none;
-    font-size: 13px;
-  }
-
-  .chat-input-row input:focus {
-    border-color: #19563e;
-  }
-
-  @media (max-width: 768px) {
-    .navbar {
-      padding: 10px 14px;
-    }
-    .bottom-nav {
-      display: flex;
-    }
-    .main-container {
-      padding: 12px 8px;
-    }
-    .search-input-row {
-      flex-direction: column;
-    }
-    .search-field {
-      width: 100%;
-    }
-    .nav-tagline {
-      display: none;
-    }
-    #hiringMap {
-      height: 380px;
-    }
-    .map-preview-sheet {
-      top: auto;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      width: 100%;
-      max-height: 60vh;
-      border-radius: 16px 16px 0 0;
-      border-bottom: none;
-    }
+  /* Hide Leaflet Attribution */
+  .leaflet-control-attribution {
+    display: none !important;
   }
 `;
