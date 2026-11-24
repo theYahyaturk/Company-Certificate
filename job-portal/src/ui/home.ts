@@ -242,6 +242,17 @@ export function renderJobPortalPage(
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/></svg>
             All Openings
           </span>
+          ${session ? `
+            <span class="nav-link-btn" id="navDesktopApplications" onclick="switchView('my-applications')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              My Applications
+              ${myApplications.length > 0 ? `<span style="background: #006B3C; color: #FFF; font-size: 10px; font-weight: 800; padding: 2px 7px; border-radius: 10px;">${myApplications.length}</span>` : ''}
+            </span>
+            <span class="nav-link-btn" id="navDesktopMessages" onclick="switchView('messages-inbox')">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Messages
+            </span>
+          ` : ''}
           ${isEmployer ? `
             <span class="btn-hiring-partner-pill" onclick="switchView('employer-dashboard')">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
@@ -568,20 +579,169 @@ export function renderJobPortalPage(
 
         <!-- Employer Applicants Table -->
         <div style="background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 18px; padding: 18px;">
-          <h2 style="font-size: 16px; font-weight: 800; margin-bottom: 14px; color: #17231D;">Recent Applicants</h2>
+          <h2 style="font-size: 16px; font-weight: 800; margin-bottom: 14px; color: #17231D;">Recent Applicants (${employerApplications.length})</h2>
           ${employerApplications.length > 0 ? employerApplications.map(a => `
-            <div style="border-bottom: 1px solid var(--border-color); padding: 10px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+            <div style="background: #F8FAF7; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
               <div>
-                <div style="font-size: 14px; font-weight: 800; color: #17231D;">${escapeHtml(a.candidate_name || 'Candidate')} &bull; ${escapeHtml(a.candidate_phone)}</div>
-                <div style="font-size: 11px; color: #78827D;">Applied for: <strong>${escapeHtml(a.job_title)}</strong> &bull; Status: <span style="font-weight: 700; color: #006B3C;">${escapeHtml(a.status.toUpperCase())}</span></div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 15px; font-weight: 800; color: #17231D;">${escapeHtml(a.candidate_name || 'Candidate')}</span>
+                  <span class="status-pill status-pill-${(a.status || 'applied').toLowerCase().replace(' ', '_')}">${escapeHtml((a.status || 'applied').toUpperCase())}</span>
+                </div>
+                <div style="font-size: 12px; color: #64748B; margin-top: 3px;">
+                  📞 ${escapeHtml(a.candidate_phone)} &bull; Applied for: <strong>${escapeHtml(a.job_title)}</strong>
+                </div>
+                ${a.resume_filename ? `
+                  <div style="font-size: 11px; color: #006B3C; font-weight: 700; margin-top: 4px;">
+                    📎 Resume: ${escapeHtml(a.resume_filename)}
+                  </div>
+                ` : ''}
               </div>
-              <div style="display: flex; gap: 8px;">
-                <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px;" onclick="openInAppChat('${a.id}', '${escapeHtml(a.candidate_name || 'Candidate')}', '${a.candidate_phone}')">💬 In-App Chat</button>
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                ${a.resume_snapshot_data ? `
+                  <a href="${a.resume_snapshot_data}" download="${escapeHtml(a.resume_filename || 'Candidate_Resume.pdf')}" class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 6px 12px; font-size: 11px; text-decoration: none; color: #17231D;">
+                    📥 Resume
+                  </a>
+                ` : ''}
+                <select class="form-input-ui" style="width: auto; padding: 6px 10px; font-size: 11px; font-weight: 700;" onchange="updateApplicantStatus('${a.id}', this.value)">
+                  <option value="applied" ${a.status === 'applied' ? 'selected' : ''}>Status: Applied</option>
+                  <option value="under_review" ${a.status === 'under_review' ? 'selected' : ''}>Status: Under Review</option>
+                  <option value="shortlisted" ${a.status === 'shortlisted' ? 'selected' : ''}>Status: Shortlisted</option>
+                  <option value="interview_scheduled" ${a.status === 'interview_scheduled' ? 'selected' : ''}>Status: Interview</option>
+                  <option value="hired" ${a.status === 'hired' ? 'selected' : ''}>Status: Selected / Hired</option>
+                  <option value="rejected" ${a.status === 'rejected' ? 'selected' : ''}>Status: Rejected</option>
+                </select>
+                <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 6px 12px; font-size: 11px;" onclick="openInAppChat('${a.id}', '${escapeHtml(a.candidate_name || 'Candidate')}', '${a.candidate_phone}')">💬 Chat</button>
               </div>
             </div>
           `).join('') : `
-            <div style="text-align: center; padding: 18px; color: #78827D; font-size: 12px;">No applicants received yet. Approved jobs appear live on candidate maps within 30km.</div>
+            <div style="text-align: center; padding: 24px; color: #78827D; font-size: 13px;">No applicants received yet. Approved jobs appear live on candidate maps within 30km.</div>
           `}
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 5: CANDIDATE MY APPLICATIONS -->
+      <!-- ============================================================= -->
+      <section class="screen-view" id="view-my-applications">
+        <div style="padding: 16px 0 14px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+          <div>
+            <h1 class="hero-heading" style="font-size: 22px;">My Applications</h1>
+            <p style="font-size: 12px; color: #78827D; margin-top: 2px;">Track live progress of your job applications, interviews, and offers.</p>
+          </div>
+          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color); padding: 6px 14px;">
+            &larr; Back to Map
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;">
+          <button class="category-pill-btn active" onclick="filterApplications('all')">All (${myApplications.length})</button>
+          <button class="category-pill-btn" onclick="filterApplications('applied')">Applied</button>
+          <button class="category-pill-btn" onclick="filterApplications('shortlisted')">Shortlisted</button>
+          <button class="category-pill-btn" onclick="filterApplications('interview')">Interview</button>
+          <button class="category-pill-btn" onclick="filterApplications('selected')">Selected</button>
+          <button class="category-pill-btn" onclick="filterApplications('withdrawn')">Withdrawn</button>
+        </div>
+
+        <div id="myApplicationsContainer">
+          ${myApplications.length > 0 ? myApplications.map(app => {
+            const statusKey = (app.status || 'applied').toLowerCase().replace(' ', '_');
+            const statusClass = 'status-pill-' + statusKey;
+            const statusLabel = (app.status || 'applied').replace('_', ' ').toUpperCase();
+            return `
+              <div class="job-card-feed app-item-card" data-status="${escapeHtml(app.status)}" style="margin-bottom: 14px;">
+                <div class="job-card-top">
+                  <div class="company-avatar-box">
+                    ${app.company_logo ? `<img src="${app.company_logo}">` : `<div class="company-avatar-initials">${escapeHtml((app.company_name || 'AL').substring(0, 2).toUpperCase())}</div>`}
+                  </div>
+                  <div class="job-card-header-info">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                      <div class="job-card-title">${escapeHtml(app.job_title || 'Application')}</div>
+                      <span class="status-pill ${statusClass}">${escapeHtml(statusLabel)}</span>
+                    </div>
+                    <div class="job-sub-row">
+                      <span>🏢 <strong>${escapeHtml(app.company_name || 'Alifeo Partner')}</strong></span>
+                      <span>&bull;</span>
+                      <span>📍 ${escapeHtml(app.city || 'India')}</span>
+                      <span>&bull;</span>
+                      <span>${escapeHtml(app.salary_display || 'Competitive')}</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="job-card-bottom" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                  <div style="font-size: 11px; color: #78827D;">
+                    Applied on: <strong>${new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 12px;" onclick="openInAppChat('${app.id}', '${escapeHtml(app.company_name || 'Hiring Team')}', '${app.employer_phone || ''}')">
+                      💬 In-App Chat
+                    </button>
+                    ${app.status !== 'withdrawn' && app.status !== 'rejected' ? `
+                      <button class="nav-link-btn" style="border: 1px solid #FECACA; color: #E54848; padding: 5px 12px; font-size: 12px;" onclick="confirmWithdrawApplication('${app.id}')">
+                        Withdraw
+                      </button>
+                    ` : ''}
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('') : `
+            <div style="text-align: center; padding: 48px 16px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 20px;">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: #ECFDF5; color: #006B3C; font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">📄</div>
+              <h3 style="font-size: 17px; font-weight: 800; color: #17231D; margin-bottom: 6px;">No Applications Submitted Yet</h3>
+              <p style="font-size: 13px; color: #78827D; max-width: 380px; margin: 0 auto 20px auto; line-height: 1.5;">Explore live nearby hiring locations on the map or apply to remote roles with instant 1-Click Application!</p>
+              <button class="btn-lime-submit" style="display: inline-block; width: auto; padding: 10px 24px;" onclick="switchView('candidate-home')">
+                Explore Live Map &rarr;
+              </button>
+            </div>
+          `}
+        </div>
+      </section>
+
+      <!-- ============================================================= -->
+      <!-- VIEW 6: MESSAGES & INBOX -->
+      <!-- ============================================================= -->
+      <section class="screen-view" id="view-messages-inbox">
+        <div style="padding: 16px 0 14px 0; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <h1 class="hero-heading" style="font-size: 22px;">Messages &amp; Interviews</h1>
+            <p style="font-size: 12px; color: #78827D; margin-top: 2px;">Direct hiring conversations and interview communications.</p>
+          </div>
+          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color); padding: 6px 14px;">
+            &larr; Back to Map
+          </button>
+        </div>
+
+        <div class="inbox-container">
+          <div class="inbox-conversations-sidebar">
+            <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 800; color: #17231D;">
+              All Conversations
+            </div>
+            <div id="inboxConversationList" style="overflow-y: auto; flex: 1;">
+              <div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>
+            </div>
+          </div>
+
+          <div class="inbox-chat-pane">
+            <div class="chat-header" id="inboxChatHeader" style="border-radius: 0;">
+              <div class="chat-header-user">
+                <div>
+                  <div style="font-size: 15px; font-weight: 800; color: #17231D;" id="inboxRecipientName">Select a Conversation</div>
+                  <div style="font-size: 11px; color: #78827D;" id="inboxRecipientSub">Where is My Job Direct Chat</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="chat-messages-body" id="inboxMessagesBody" style="flex: 1; overflow-y: auto;">
+              <div style="text-align: center; padding: 48px 16px; color: #94A3B8; font-size: 13px;">
+                Select a recruiter or applicant conversation on the left to view messages.
+              </div>
+            </div>
+
+            <div class="chat-input-bar" id="inboxInputBar" style="display: none;">
+              <input type="text" id="inboxMessageInput" class="chat-input-field" placeholder="Type your response..." onkeypress="if(event.key === 'Enter') sendInboxMessage()">
+              <button class="chat-send-btn" onclick="sendInboxMessage()">&rarr;</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -600,7 +760,7 @@ export function renderJobPortalPage(
       </div>
     </footer>
 
-    <!-- Mobile Floating Bottom Navigation -->
+    <!-- Mobile Floating Bottom Navigation (6 Core Tabs) -->
     <nav class="mobile-bottom-nav">
       <button class="mobile-tab-btn active" id="mTabMap" onclick="switchView('candidate-home')">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -614,13 +774,23 @@ export function renderJobPortalPage(
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/></svg>
         <span>Jobs</span>
       </button>
+      ${session ? `
+        <button class="mobile-tab-btn" id="mTabApplied" onclick="switchView('my-applications')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>Applied</span>
+        </button>
+        <button class="mobile-tab-btn" id="mTabChat" onclick="switchView('messages-inbox')">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Chat</span>
+        </button>
+      ` : ''}
       ${isEmployer ? `
         <button class="mobile-tab-btn" id="mTabEmp" onclick="switchView('employer-dashboard')">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>
           <span>Hiring</span>
         </button>
       ` : `
-        <button class="mobile-tab-btn" onclick="openProfileModal()">
+        <button class="mobile-tab-btn" id="mTabProfile" onclick="openProfileModal()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
           <span>Profile</span>
         </button>
@@ -797,29 +967,192 @@ export function renderJobPortalPage(
     </div>
   </div>
 
-  <!-- 5. Profile Modal -->
+  <!-- 5. Comprehensive Profile Modal (Tabs: Profile Details, My Resumes, Account) -->
   <div class="modal-overlay" id="profileModal">
-    <div class="modal-card">
+    <div class="modal-card" style="max-width: 580px; max-height: 90vh; overflow-y: auto;">
       <div class="modal-top-bar">
-        <div class="modal-title-text">My Profile</div>
+        <div class="modal-title-text">Candidate Profile</div>
         <button class="modal-close-icon" onclick="closeModal('profileModal')">&times;</button>
       </div>
 
-      <div style="text-align: center; margin-bottom: 20px;">
-        <div style="width: 68px; height: 68px; border-radius: 50%; background: #F1F5F9; border: 3px solid #CFF92D; margin: 0 auto 8px auto; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-          ${userPhoto ? `<img src="${userPhoto}" style="width: 100%; height: 100%; object-fit: cover;">` : `<span style="font-size: 24px; font-weight: 800; color: #006B3C;">${escapeHtml(userName.charAt(0).toUpperCase())}</span>`}
-        </div>
-        <div style="font-size: 17px; font-weight: 800; color: #17231D;">${escapeHtml(userName)}</div>
-        <div style="font-size: 12px; color: #78827D;">${escapeHtml(userEmail || userPhone)}</div>
+      <!-- Tab Navigation Bar -->
+      <div class="tab-nav-bar">
+        <button class="tab-nav-item active" id="tabBtnProfileDetails" onclick="switchProfileTab('profileDetails')">Profile Details</button>
+        <button class="tab-nav-item" id="tabBtnProfileResumes" onclick="switchProfileTab('profileResumes')">My Resumes (${userResumes.length})</button>
+        <button class="tab-nav-item" id="tabBtnProfileAccount" onclick="switchProfileTab('profileAccount')">Account</button>
       </div>
 
-      <div style="margin-top: 20px;">
-        <button type="button" class="btn-lime-submit" onclick="handleSwitchToEmployerNotice()" style="margin-bottom: 10px;">
-          Want to Hire? Switch to Employer Partner &rarr;
-        </button>
-        <button type="button" style="width: 100%; padding: 11px; border-radius: 100px; background: #FEE2E2; border: none; color: #E54848; font-weight: 700; cursor: pointer;" onclick="handleLogout()">
-          Sign Out of Account
-        </button>
+      <!-- TAB 1: Profile Details -->
+      <div id="tabContentProfileDetails">
+        <div style="text-align: center; margin-bottom: 18px;">
+          <div style="position: relative; width: 76px; height: 76px; margin: 0 auto 8px auto;">
+            <div style="width: 76px; height: 76px; border-radius: 50%; background: #F1F5F9; border: 3px solid #CFF92D; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+              <img id="userPhotoPreview" src="${userPhoto || ''}" style="${userPhoto ? '' : 'display: none;'} width: 100%; height: 100%; object-fit: cover;">
+              <span id="userPhotoInitial" style="${userPhoto ? 'display: none;' : ''} font-size: 28px; font-weight: 800; color: #006B3C;">${escapeHtml(userName.charAt(0).toUpperCase())}</span>
+            </div>
+            <label for="profilePhotoInput" style="position: absolute; bottom: 0; right: 0; width: 26px; height: 26px; border-radius: 50%; background: #006B3C; color: #FFFFFF; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #FFFFFF; font-size: 13px;" title="Upload Photo">
+              📷
+            </label>
+            <input type="file" id="profilePhotoInput" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload(event)">
+            <input type="hidden" id="profilePhotoBase64" value="${escapeHtml(userPhoto)}">
+          </div>
+          <div style="font-size: 16px; font-weight: 800; color: #17231D;">${escapeHtml(userName)}</div>
+          <div style="font-size: 12px; color: #78827D;">WhatsApp Verified: <strong>${escapeHtml(userPhone)}</strong></div>
+        </div>
+
+        <form id="candidateProfileForm" onsubmit="event.preventDefault(); saveCandidateProfile();">
+          <div class="form-row-2col">
+            <div class="form-group-ui">
+              <label class="form-label-ui">Full Name *</label>
+              <input type="text" id="profName" class="form-input-ui" value="${escapeHtml(userProfile?.name || session?.name || '')}" placeholder="Your Full Name" required>
+            </div>
+            <div class="form-group-ui">
+              <label class="form-label-ui">Professional Headline</label>
+              <input type="text" id="profHeadline" class="form-input-ui" value="${escapeHtml(userProfile?.headline || '')}" placeholder="e.g. Senior Product Designer">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group-ui">
+              <label class="form-label-ui">Email Address *</label>
+              <input type="email" id="profEmail" class="form-input-ui" value="${escapeHtml(userProfile?.email || session?.email || '')}" placeholder="name@example.com" required>
+            </div>
+            <div class="form-group-ui">
+              <label class="form-label-ui">Current City / Location</label>
+              <input type="text" id="profLocation" class="form-input-ui" value="${escapeHtml(userProfile?.location || 'Moradabad, India')}" placeholder="e.g. Moradabad, Uttar Pradesh">
+            </div>
+          </div>
+
+          <div class="form-group-ui">
+            <label class="form-label-ui">About Me / Summary</label>
+            <textarea id="profAbout" class="form-input-ui" rows="2" placeholder="Brief summary of your professional background and interests...">${escapeHtml(userProfile?.about_me || userProfile?.experience_summary || '')}</textarea>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group-ui">
+              <label class="form-label-ui">Education</label>
+              <input type="text" id="profEducation" class="form-input-ui" value="${escapeHtml(userProfile?.education || '')}" placeholder="e.g. B.Tech / MBA (College, Year)">
+            </div>
+            <div class="form-group-ui">
+              <label class="form-label-ui">Languages Known</label>
+              <input type="text" id="profLanguages" class="form-input-ui" value="${escapeHtml(userProfile?.languages || 'English, Hindi')}" placeholder="e.g. Hindi, English">
+            </div>
+          </div>
+
+          <div class="form-group-ui">
+            <label class="form-label-ui">Skills</label>
+            <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+              <input type="text" id="profSkillInput" class="form-input-ui" placeholder="Type a skill (e.g. Figma, React, Sales)..." onkeypress="if(event.key === 'Enter'){ event.preventDefault(); addProfileSkill(); }">
+              <button type="button" class="btn-lime-apply" style="white-space: nowrap; padding: 6px 14px;" onclick="addProfileSkill()">+ Add</button>
+            </div>
+            <div id="profSkillsChipsContainer" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+            <input type="hidden" id="profSkillsHidden" value="${escapeHtml(userProfile?.skills || 'UI/UX, Design')}">
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group-ui">
+              <label class="form-label-ui">Portfolio / Work Link</label>
+              <input type="url" id="profPortfolio" class="form-input-ui" value="${escapeHtml(userProfile?.portfolio_url || '')}" placeholder="https://yourportfolio.com">
+            </div>
+            <div class="form-group-ui">
+              <label class="form-label-ui">LinkedIn Profile</label>
+              <input type="url" id="profLinkedin" class="form-input-ui" value="${escapeHtml(userProfile?.linkedin_url || '')}" placeholder="https://linkedin.com/in/username">
+            </div>
+          </div>
+
+          <div class="form-row-2col">
+            <div class="form-group-ui">
+              <label class="form-label-ui">Expected Monthly Salary</label>
+              <input type="text" id="profSalary" class="form-input-ui" value="${escapeHtml(userProfile?.salary_expectation || '')}" placeholder="e.g. ₹35,000 / month">
+            </div>
+            <div class="form-group-ui">
+              <label class="form-label-ui">Notice Period</label>
+              <select id="profNotice" class="form-input-ui">
+                <option value="immediate" ${userProfile?.notice_period === 'immediate' ? 'selected' : ''}>Immediate (0 Days)</option>
+                <option value="15_days" ${userProfile?.notice_period === '15_days' ? 'selected' : ''}>15 Days</option>
+                <option value="30_days" ${userProfile?.notice_period === '30_days' ? 'selected' : ''}>30 Days</option>
+                <option value="60_days" ${userProfile?.notice_period === '60_days' ? 'selected' : ''}>60+ Days</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group-ui">
+            <label class="form-label-ui">Preferred Work Modes</label>
+            <div style="display: flex; gap: 14px; font-size: 13px; font-weight: 700; color: #17231D; margin-top: 4px;">
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="modeOnsite" ${(userProfile?.work_modes || 'onsite,remote').includes('onsite') ? 'checked' : ''}> On-Site (Office / Shop / Factory)
+              </label>
+              <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <input type="checkbox" id="modeRemote" ${(userProfile?.work_modes || 'onsite,remote').includes('remote') ? 'checked' : ''}> Remote (Work From Home)
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-lime-submit" style="margin-top: 14px;">
+            Save &amp; Update Profile &rarr;
+          </button>
+        </form>
+      </div>
+
+      <!-- TAB 2: My Resumes -->
+      <div id="tabContentProfileResumes" style="display: none;">
+        <div style="background: #F8FAF7; border: 1.5px dashed #006B3C; border-radius: 16px; padding: 18px; text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 28px; margin-bottom: 6px;">📄</div>
+          <div style="font-size: 14px; font-weight: 800; color: #17231D;">Upload New Resume</div>
+          <p style="font-size: 11px; color: #78827D; margin: 4px 0 12px 0;">PDF or DOCX format (Max 5MB). Auto-attached to your 1-Click Applications.</p>
+          <input type="file" id="resumeUploadInput" accept=".pdf,.doc,.docx" style="display: none;" onchange="handleResumeFileSelected(event)">
+          <button type="button" class="btn-lime-apply" onclick="document.getElementById('resumeUploadInput').click()">
+            Choose Resume File &rarr;
+          </button>
+        </div>
+
+        <div style="font-size: 13px; font-weight: 800; color: #17231D; margin-bottom: 10px;">Uploaded Resumes (${userResumes.length})</div>
+        <div id="resumesListContainer">
+          ${userResumes.length > 0 ? userResumes.map(r => `
+            <div class="resume-list-item">
+              <div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 13px; font-weight: 800; color: #17231D;">${escapeHtml(r.filename)}</span>
+                  ${r.is_current ? `<span class="resume-default-badge">DEFAULT</span>` : ''}
+                </div>
+                <div style="font-size: 11px; color: #78827D; margin-top: 2px;">
+                  ${Math.round((r.file_size || 0) / 1024)} KB &bull; Uploaded ${new Date(r.uploaded_at).toLocaleDateString()}
+                </div>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                ${!r.is_current ? `
+                  <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 4px 10px; font-size: 11px;" onclick="setDefaultResume('${r.id}')">
+                    Set Default
+                  </button>
+                ` : ''}
+                <button class="nav-link-btn" style="border: 1px solid #FECACA; color: #E54848; padding: 4px 10px; font-size: 11px;" onclick="deleteResume('${r.id}')">
+                  Delete
+                </button>
+              </div>
+            </div>
+          `).join('') : `
+            <div style="text-align: center; padding: 20px; color: #78827D; font-size: 12px;">No resumes uploaded yet. Upload your resume above for instant 1-Click Apply!</div>
+          `}
+        </div>
+      </div>
+
+      <!-- TAB 3: Account & Role -->
+      <div id="tabContentProfileAccount" style="display: none; padding-top: 10px;">
+        <div style="background: #F8FAF7; border: 1px solid var(--border-color); border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 800; color: #17231D; margin-bottom: 4px;">Recruiter / Hiring Partner Access</div>
+          <p style="font-size: 12px; color: #78827D; line-height: 1.5; margin-bottom: 12px;">Looking to hire talent, post jobs, or pin your company on the candidate hiring map?</p>
+          <button type="button" class="btn-lime-submit" onclick="handleSwitchToEmployerNotice()">
+            Want to Hire? Switch to Employer Partner &rarr;
+          </button>
+        </div>
+
+        <div style="background: #FFF5F5; border: 1px solid #FED7D7; border-radius: 14px; padding: 14px;">
+          <div style="font-size: 13px; font-weight: 800; color: #E54848; margin-bottom: 4px;">Account Session</div>
+          <p style="font-size: 12px; color: #78827D; margin-bottom: 12px;">Sign out from your active Where is My Job session.</p>
+          <button type="button" style="width: 100%; padding: 10px; border-radius: 100px; background: #FEE2E2; border: none; color: #E54848; font-weight: 700; cursor: pointer;" onclick="handleLogout()">
+            Sign Out of Account
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -1101,6 +1434,13 @@ export function renderJobPortalPage(
       } else if (viewId === 'all-jobs-list') {
         document.getElementById('navDesktopAllJobs')?.classList.add('active');
         document.getElementById('mTabJobs')?.classList.add('active');
+      } else if (viewId === 'my-applications') {
+        document.getElementById('navDesktopApplications')?.classList.add('active');
+        document.getElementById('mTabApplied')?.classList.add('active');
+      } else if (viewId === 'messages-inbox') {
+        document.getElementById('navDesktopMessages')?.classList.add('active');
+        document.getElementById('mTabChat')?.classList.add('active');
+        loadInboxConversations();
       } else if (viewId === 'employer-dashboard') {
         document.getElementById('mTabEmp')?.classList.add('active');
       }
@@ -1110,9 +1450,335 @@ export function renderJobPortalPage(
 
     function openModal(id) { document.getElementById(id)?.classList.add('active'); }
     function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
-    function openProfileModal() { openModal('profileModal'); }
+    function openProfileModal() {
+      openModal('profileModal');
+      renderProfileSkillsChips();
+    }
     function openPostJobModal() { openModal('postJobModal'); }
     function openCityPickerModal() { openModal('cityPickerModal'); }
+
+    // Profile Modal Tabs
+    function switchProfileTab(tab) {
+      const tabs = ['profileDetails', 'profileResumes', 'profileAccount'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+        const content = document.getElementById('tabContent' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (content) content.style.display = t === tab ? 'block' : 'none';
+      });
+      if (tab === 'profileDetails') renderProfileSkillsChips();
+    }
+
+    function handleProfilePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const b64 = e.target.result;
+        const img = document.getElementById('userPhotoPreview');
+        const initial = document.getElementById('userPhotoInitial');
+        if (img) { img.src = b64; img.style.display = 'block'; }
+        if (initial) initial.style.display = 'none';
+        document.getElementById('profilePhotoBase64').value = b64;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    let PROFILE_SKILLS = (document.getElementById('profSkillsHidden')?.value || 'UI/UX, Design')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    function renderProfileSkillsChips() {
+      const container = document.getElementById('profSkillsChipsContainer');
+      if (!container) return;
+      container.innerHTML = PROFILE_SKILLS.map((skill, idx) => (
+        '<span class="mini-tag-pill" style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 12px; background: #ECFDF5; border: 1px solid #A7F3D0; color: #004D35;">' +
+        escapeHtml(skill) +
+        '<span style="cursor: pointer; font-weight: 800; color: #E54848;" onclick="removeProfileSkill(' + idx + ')">&times;</span></span>'
+      )).join('');
+      const hidden = document.getElementById('profSkillsHidden');
+      if (hidden) hidden.value = PROFILE_SKILLS.join(', ');
+    }
+
+    function addProfileSkill() {
+      const input = document.getElementById('profSkillInput');
+      const val = input?.value.trim();
+      if (!val) return;
+      if (!PROFILE_SKILLS.includes(val)) {
+        PROFILE_SKILLS.push(val);
+        renderProfileSkillsChips();
+      }
+      input.value = '';
+    }
+
+    function removeProfileSkill(idx) {
+      PROFILE_SKILLS.splice(idx, 1);
+      renderProfileSkillsChips();
+    }
+
+    async function saveCandidateProfile() {
+      const name = document.getElementById('profName').value.trim();
+      const headline = document.getElementById('profHeadline').value.trim();
+      const email = document.getElementById('profEmail').value.trim();
+      const location = document.getElementById('profLocation').value.trim();
+      const about_me = document.getElementById('profAbout').value.trim();
+      const education = document.getElementById('profEducation').value.trim();
+      const languages = document.getElementById('profLanguages').value.trim();
+      const skills = PROFILE_SKILLS.join(', ');
+      const portfolio_url = document.getElementById('profPortfolio').value.trim();
+      const linkedin_url = document.getElementById('profLinkedin').value.trim();
+      const salary_expectation = document.getElementById('profSalary').value.trim();
+      const notice_period = document.getElementById('profNotice').value;
+      const photo_url = document.getElementById('profilePhotoBase64').value;
+      
+      const workModes = [];
+      if (document.getElementById('modeOnsite')?.checked) workModes.push('onsite');
+      if (document.getElementById('modeRemote')?.checked) workModes.push('remote');
+
+      try {
+        const res = await fetch('/api/profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, headline, email, location, about_me, education, languages,
+            skills, portfolio_url, linkedin_url, salary_expectation, notice_period,
+            work_modes: workModes.join(','), photo_url
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showInAppToast('Profile updated successfully!', 'success');
+          closeModal('profileModal');
+          setTimeout(() => window.location.reload(), 800);
+        } else {
+          showInAppToast(data.error || 'Failed to update profile', 'error');
+        }
+      } catch (e) {
+        showInAppToast('Network error saving profile', 'error');
+      }
+    }
+
+    // Resume Management
+    function handleResumeFileSelected(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (file.size > 5 * 1024 * 1024) {
+        showInAppToast('Resume file must be under 5MB', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        const b64 = e.target.result;
+        try {
+          const res = await fetch('/api/resumes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              filename: file.name,
+              file_data: b64,
+              file_size: file.size,
+              mime_type: file.type || 'application/pdf',
+              is_current: true
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            showInAppToast('Resume uploaded and set as default!', 'success');
+            setTimeout(() => window.location.reload(), 800);
+          } else {
+            showInAppToast(data.error || 'Failed to upload resume', 'error');
+          }
+        } catch (err) {
+          showInAppToast('Error uploading resume', 'error');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function setDefaultResume(resumeId) {
+      try {
+        const res = await fetch('/api/resumes/' + resumeId + '/default', { method: 'PUT' });
+        const data = await res.json();
+        if (data.success) {
+          showInAppToast('Default resume updated', 'success');
+          setTimeout(() => window.location.reload(), 600);
+        } else {
+          showInAppToast(data.error || 'Failed to update resume', 'error');
+        }
+      } catch (e) {
+        showInAppToast('Network error', 'error');
+      }
+    }
+
+    async function deleteResume(resumeId) {
+      showInAppNotice(
+        'Delete Resume',
+        'Are you sure you want to delete this resume? You can upload an updated version anytime.',
+        'Delete Resume',
+        async () => {
+          try {
+            const res = await fetch('/api/resumes/' + resumeId, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+              showInAppToast('Resume deleted successfully', 'success');
+              setTimeout(() => window.location.reload(), 600);
+            } else {
+              showInAppToast(data.error || 'Failed to delete resume', 'error');
+            }
+          } catch (e) {
+            showInAppToast('Network error deleting resume', 'error');
+          }
+        }
+      );
+    }
+
+    // Application Management
+    function filterApplications(status) {
+      document.querySelectorAll('#view-my-applications .category-pill-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      document.querySelectorAll('.app-item-card').forEach(card => {
+        const cardStatus = (card.getAttribute('data-status') || '').toLowerCase();
+        if (status === 'all' || cardStatus.includes(status)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+
+    async function confirmWithdrawApplication(appId) {
+      showInAppNotice(
+        'Withdraw Application',
+        'Are you sure you want to withdraw this application? The hiring team will be notified.',
+        'Withdraw Application',
+        async () => {
+          try {
+            const res = await fetch('/api/applications/' + appId + '/withdraw', { method: 'PUT' });
+            const data = await res.json();
+            if (data.success) {
+              showInAppToast('Application withdrawn successfully', 'success');
+              setTimeout(() => window.location.reload(), 800);
+            } else {
+              showInAppToast(data.error || 'Failed to withdraw application', 'error');
+            }
+          } catch (e) {
+            showInAppToast('Network error withdrawing application', 'error');
+          }
+        }
+      );
+    }
+
+    // Messages & Inbox System
+    let ACTIVE_CONVERSATION_ID = null;
+
+    async function loadInboxConversations() {
+      const container = document.getElementById('inboxConversationList');
+      if (!container) return;
+      try {
+        const res = await fetch('/api/chat/conversations');
+        const data = await res.json();
+        if (data.success && data.conversations && data.conversations.length > 0) {
+          container.innerHTML = data.conversations.map(c => (
+            '<div class="convo-item ' + (c.id === ACTIVE_CONVERSATION_ID ? 'active' : '') + '" onclick="openInboxConversation(\'' + c.id + '\', \'' + escapeHtml(c.other_name) + '\', \'' + (c.other_phone || '') + '\', \'' + escapeHtml(c.job_title) + '\')">' +
+              '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">' +
+                '<div style="font-size: 13px; font-weight: 800; color: #17231D;">' + escapeHtml(c.other_name) + '</div>' +
+                '<div style="font-size: 10px; color: #78827D;">' + (c.last_time ? new Date(c.last_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
+              '</div>' +
+              '<div style="font-size: 11px; font-weight: 700; color: #006B3C;">' + escapeHtml(c.job_title) + '</div>' +
+              '<div style="font-size: 11px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">' + escapeHtml(c.last_message || 'Application opened') + '</div>' +
+            '</div>'
+          )).join('');
+          if (!ACTIVE_CONVERSATION_ID && data.conversations[0]) {
+            const first = data.conversations[0];
+            openInboxConversation(first.id, first.other_name, first.other_phone, first.job_title);
+          }
+        } else {
+          container.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: #78827D; font-size: 12px;">No active conversations yet. Submit an application or chat with an employer to start!</div>';
+        }
+      } catch (e) {
+        container.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Failed to load conversations.</div>';
+      }
+    }
+
+    async function openInboxConversation(convoId, otherName, otherPhone, jobTitle) {
+      ACTIVE_CONVERSATION_ID = convoId;
+      document.getElementById('inboxRecipientName').innerText = otherName || 'Direct Hiring';
+      document.getElementById('inboxRecipientSub').innerText = (jobTitle ? jobTitle + ' • ' : '') + 'Where is My Job Chat';
+      document.getElementById('inboxInputBar').style.display = 'flex';
+
+      const body = document.getElementById('inboxMessagesBody');
+      body.innerHTML = '<div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>';
+
+      try {
+        const res = await fetch('/api/chat/messages?application_id=' + convoId);
+        const data = await res.json();
+        if (data.success && data.messages) {
+          if (data.messages.length === 0) {
+            body.innerHTML = '<div style="padding: 32px; text-align: center; color: #94A3B8; font-size: 12px;">This is the beginning of your conversation regarding ' + escapeHtml(jobTitle) + '.</div>';
+          } else {
+            body.innerHTML = data.messages.map(m => {
+              const isOut = m.sender_phone === '${userPhone}';
+              return (
+                '<div class="chat-bubble ' + (isOut ? 'chat-bubble-out' : 'chat-bubble-in') + '">' +
+                  '<div>' + escapeHtml(m.message) + '</div>' +
+                  '<div style="font-size: 9px; color: ' + (isOut ? '#D1FAE5' : '#94A3B8') + '; margin-top: 4px; text-align: right;">' +
+                    new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+                  '</div>' +
+                '</div>'
+              );
+            }).join('');
+          }
+          body.scrollTop = body.scrollHeight;
+        }
+      } catch (e) {
+        body.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Error loading messages.</div>';
+      }
+    }
+
+    async function sendInboxMessage() {
+      const input = document.getElementById('inboxMessageInput');
+      const text = input.value.trim();
+      if (!text || !ACTIVE_CONVERSATION_ID) return;
+
+      const body = document.getElementById('inboxMessagesBody');
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble chat-bubble-out';
+      bubble.innerHTML = '<div>' + escapeHtml(text) + '</div><div style="font-size: 9px; color: #D1FAE5; margin-top: 4px; text-align: right;">Just now</div>';
+      body.appendChild(bubble);
+      input.value = '';
+      body.scrollTop = body.scrollHeight;
+
+      try {
+        await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            application_id: ACTIVE_CONVERSATION_ID,
+            message: text
+          })
+        });
+      } catch (e) {}
+    }
+
+    async function updateApplicantStatus(appId, newStatus) {
+      try {
+        const res = await fetch('/api/employer/applications/' + appId + '/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showInAppToast('Application status updated to ' + newStatus.toUpperCase(), 'success');
+        } else {
+          showInAppToast(data.error || 'Failed to update status', 'error');
+        }
+      } catch (e) {
+        showInAppToast('Network error updating status', 'error');
+      }
+    }
 
     function handleEmployerAccessClick() {
       if (IS_LOGGED_IN && ACTIVE_USER_ROLE === 'job_seeker') {

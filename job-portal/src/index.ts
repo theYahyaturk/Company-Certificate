@@ -767,21 +767,55 @@ export default {
         return new Response(JSON.stringify({ jobs: jobs || [] }), { headers: corsHeaders });
       }
 
-      // Apply for Job
-      if (path.startsWith('/api/jobs/') && path.endsWith('/apply') && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Please sign in to apply' }), { status: 401 });
-        const jobId = path.split('/')[3];
+      // -------------------------------------------------------------
+      // 5. RESUME MANAGEMENT (List, Upload, Download, Default, Delete)
+      // -------------------------------------------------------------
+      if (path === '/api/resumes' && method === 'GET') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const { results: resumes } = await env.DB.prepare(
+          'SELECT id, filename, file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC'
+        ).bind(session.phone).all<Resume>();
+        return new Response(JSON.stringify({ success: true, resumes: resumes || [] }), { headers: corsHeaders });
+      }
+
+      if (path.startsWith('/api/resumes/') && method === 'DELETE') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const resumeId = path.split('/')[3];
+        await env.DB.prepare('DELETE FROM resumes WHERE id = ? AND user_phone = ?').bind(resumeId, session.phone).run();
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      if (path.startsWith('/api/resumes/') && path.endsWith('/default') && (method === 'PUT' || method === 'POST')) {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const resumeId = path.split('/')[3];
+        await env.DB.prepare('UPDATE resumes SET is_current = 0 WHERE user_phone = ?').bind(session.phone).run();
+        await env.DB.prepare('UPDATE resumes SET is_current = 1 WHERE id = ? AND user_phone = ?').bind(resumeId, session.phone).run();
+        await env.DB.prepare('UPDATE job_seeker_profiles SET current_resume_id = ? WHERE phone = ?').bind(resumeId, session.phone).run();
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+      }
+
+      // -------------------------------------------------------------
+      // 6. APPLICATIONS (Submit, Candidate List, Withdraw)
+      // -------------------------------------------------------------
+      // 1. Submit Application: support BOTH POST /api/applications AND POST /api/jobs/:id/apply
+      if ((path === '/api/applications' || (path.startsWith('/api/jobs/') && path.endsWith('/apply'))) && method === 'POST') {
+        if (!session) return new Response(JSON.stringify({ error: 'Please sign in to apply' }), { status: 401, headers: corsHeaders });
         const b = await request.json() as any;
+        const jobId = b.job_id || path.split('/')[3];
+
+        if (!jobId) {
+          return new Response(JSON.stringify({ error: 'Job ID is required' }), { status: 400, headers: corsHeaders });
+        }
 
         const job = await env.DB.prepare('SELECT * FROM jobs WHERE id = ? AND status = "approved"').bind(jobId).first<Job>();
-        if (!job) return new Response(JSON.stringify({ error: 'This job is no longer accepting applications' }), { status: 404 });
+        if (!job) return new Response(JSON.stringify({ error: 'This job is no longer accepting applications' }), { status: 404, headers: corsHeaders });
 
         const existingApp = await env.DB.prepare(
           'SELECT id FROM job_applications WHERE job_id = ? AND candidate_phone = ?'
         ).bind(jobId, session.phone).first();
 
         if (existingApp) {
-          return new Response(JSON.stringify({ error: 'You have already applied for this position' }), { status: 400 });
+          return new Response(JSON.stringify({ error: 'You have already applied for this position' }), { status: 400, headers: corsHeaders });
         }
 
         let resume = b.resume_id
@@ -789,7 +823,26 @@ export default {
           : await env.DB.prepare('SELECT * FROM resumes WHERE user_phone = ? AND is_current = 1').bind(session.phone).first<Resume>();
 
         if (!resume) {
-          return new Response(JSON.stringify({ error: 'Please upload a resume first' }), { status: 400 });
+          // Check if any resume exists
+          resume = await env.DB.prepare('SELECT * FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC').bind(session.phone).first<Resume>();
+        }
+
+        let resumeId = resume?.id || '';
+        let resumeFilename = resume?.filename || '';
+        let resumeData = resume?.file_data || '';
+        let resumeMime = resume?.mime_type || 'application/pdf';
+
+        if (!resume) {
+          // Check candidate profile
+          const profile = await env.DB.prepare('SELECT * FROM job_seeker_profiles WHERE phone = ?').bind(session.phone).first<JobSeekerProfile>();
+          if (!profile || !profile.name) {
+            return new Response(JSON.stringify({ error: 'Please upload a resume or complete your profile first' }), { status: 400, headers: corsHeaders });
+          }
+          resumeId = 'RES-PROF-' + session.phone;
+          resumeFilename = `${(profile.name || 'Candidate').replace(/\s+/g, '_')}_Profile.txt`;
+          const textSummary = `ALIFEO CANDIDATE PROFILE\nName: ${profile.name}\nPhone: ${profile.phone}\nEmail: ${profile.email || ''}\nHeadline: ${profile.headline || ''}\nLocation: ${profile.location || ''}\nSkills: ${profile.skills || ''}\nExperience: ${profile.experience_summary || ''}\nEducation: ${profile.education || ''}\nPortfolio: ${profile.portfolio_url || ''}\nLinkedIn: ${profile.linkedin_url || ''}`;
+          resumeData = btoa(textSummary);
+          resumeMime = 'text/plain';
         }
 
         const appId = 'APP-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -806,10 +859,10 @@ export default {
           session.phone,
           (b.candidate_name || session.name || 'Candidate').trim(),
           (b.candidate_email || session.email || '').trim(),
-          resume.id,
-          resume.filename,
-          resume.file_data,
-          resume.mime_type,
+          resumeId,
+          resumeFilename,
+          resumeData,
+          resumeMime,
           b.screening_answers_json ? JSON.stringify(b.screening_answers_json) : null,
           (b.cover_note || '').trim(),
           Date.now(),
@@ -821,7 +874,56 @@ export default {
           VALUES (?, ?, 'none', 'applied', ?, 'candidate', 'Application submitted by candidate', ?)
         `).bind('HIST-' + Math.random().toString(36).substring(2, 8), appId, session.phone, Date.now()).run();
 
-        return new Response(JSON.stringify({ success: true, applicationId: appId }), { headers: corsHeaders });
+        // Create initial chat message for this application
+        const welcomeMsgId = 'MSG-' + Date.now().toString(36);
+        await env.DB.prepare(`
+          INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_name, message, is_read, created_at)
+          VALUES (?, ?, ?, ?, 'system', 'Where is My Job? Bot', ?, 0, ?)
+        `).bind(
+          welcomeMsgId, 'CONV-' + appId, appId, job.employer_phone,
+          `Application submitted for ${job.title} at ${job.company_name || 'Company'}. The hiring team has been notified.`,
+          Date.now()
+        ).run().catch(() => {});
+
+        return new Response(JSON.stringify({ 
+          success: true, 
+          applicationId: appId,
+          job_title: job.title,
+          company_name: job.company_name || 'Alifeo Partner'
+        }), { headers: corsHeaders });
+      }
+
+      // Candidate Fetch Applications
+      if (path === '/api/applications' && method === 'GET') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+
+        const { results: apps } = await env.DB.prepare(`
+          SELECT a.*, j.title as job_title, 
+                 COALESCE(j.company_name, j.company, 'Alifeo Partner') as company_name, 
+                 j.company_logo, j.city, j.work_mode, 
+                 COALESCE(j.salary_display, j.stipend_salary, 'Competitive') as salary_display,
+                 j.employer_phone
+          FROM job_applications a
+          JOIN jobs j ON a.job_id = j.id
+          WHERE a.candidate_phone = ?
+          ORDER BY a.created_at DESC
+        `).bind(session.phone).all<Application>();
+
+        return new Response(JSON.stringify({ success: true, applications: apps || [] }), { headers: corsHeaders });
+      }
+
+      // Candidate Withdraw Application
+      if (path.startsWith('/api/applications/') && path.endsWith('/withdraw') && (method === 'PUT' || method === 'POST')) {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const appId = path.split('/')[3];
+
+        await env.DB.prepare(`
+          UPDATE job_applications 
+          SET status = 'withdrawn', updated_at = ? 
+          WHERE id = ? AND candidate_phone = ?
+        `).bind(Date.now(), appId, session.phone).run();
+
+        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
       // -------------------------------------------------------------
@@ -975,6 +1077,79 @@ export default {
           .bind(Date.now(), appId).run();
 
         return new Response(JSON.stringify({ success: true, interviewId: intId }), { headers: corsHeaders });
+      }
+
+      if (path === '/api/chat/conversations' && method === 'GET') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+
+        if (session.active_role === 'job_seeker') {
+          const { results: convos } = await env.DB.prepare(`
+            SELECT 
+              a.id as application_id, a.job_id, a.status, a.created_at as applied_at,
+              j.title as job_title, 
+              COALESCE(j.company_name, j.company, 'Alifeo Partner') as other_party_name,
+              j.company_logo as other_party_logo,
+              j.employer_phone as other_party_phone,
+              (SELECT message FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message,
+              (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+              (SELECT COUNT(*) FROM chat_messages WHERE application_id = a.id AND sender_role = 'employer' AND is_read = 0) as unread_count
+            FROM job_applications a
+            JOIN jobs j ON a.job_id = j.id
+            WHERE a.candidate_phone = ?
+            ORDER BY COALESCE(last_message_time, a.created_at) DESC
+          `).bind(session.phone).all();
+
+          return new Response(JSON.stringify({ success: true, conversations: convos || [] }), { headers: corsHeaders });
+        } else {
+          const { results: convos } = await env.DB.prepare(`
+            SELECT 
+              a.id as application_id, a.job_id, a.status, a.created_at as applied_at,
+              j.title as job_title,
+              COALESCE(a.candidate_name, 'Candidate') as other_party_name,
+              p.photo_url as other_party_logo,
+              a.candidate_phone as other_party_phone,
+              (SELECT message FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message,
+              (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+              (SELECT COUNT(*) FROM chat_messages WHERE application_id = a.id AND sender_role = 'candidate' AND is_read = 0) as unread_count
+            FROM job_applications a
+            JOIN jobs j ON a.job_id = j.id
+            LEFT JOIN job_seeker_profiles p ON a.candidate_phone = p.phone
+            WHERE j.employer_phone = ?
+            ORDER BY COALESCE(last_message_time, a.created_at) DESC
+          `).bind(session.phone).all();
+
+          return new Response(JSON.stringify({ success: true, conversations: convos || [] }), { headers: corsHeaders });
+        }
+      }
+
+      if (path === '/api/chat/start' && method === 'POST') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
+        const b = await request.json() as any;
+        const jobId = b.job_id;
+        let appId = b.application_id;
+
+        if (!appId && jobId) {
+          const app = await env.DB.prepare('SELECT id FROM job_applications WHERE job_id = ? AND candidate_phone = ?').bind(jobId, session.phone).first<{ id: string }>();
+          if (app) appId = app.id;
+        }
+
+        if (!appId && jobId) {
+          const job = await env.DB.prepare('SELECT * FROM jobs WHERE id = ?').bind(jobId).first<Job>();
+          if (job) {
+            appId = 'APP-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+            await env.DB.prepare(`
+              INSERT INTO job_applications (
+                id, job_id, candidate_phone, candidate_name, candidate_email,
+                resume_id, resume_filename, resume_snapshot_data, resume_mime_type,
+                status, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, 'inquiry', 'Inquiry', '', 'text/plain', 'applied', ?, ?)
+            `).bind(
+              appId, job.id, session.phone, session.name || 'Candidate', session.email || '', Date.now(), Date.now()
+            ).run();
+          }
+        }
+
+        return new Response(JSON.stringify({ success: true, application_id: appId }), { headers: corsHeaders });
       }
 
       if (path.startsWith('/api/chat/') && path.endsWith('/messages')) {
@@ -1380,6 +1555,12 @@ async function ensureJobTables(db: D1Database): Promise<void> {
   // Profile migrations
   try {
     await db.prepare('ALTER TABLE job_seeker_profiles ADD COLUMN photo_url TEXT').run();
+  } catch (e) { }
+  try {
+    await db.prepare('ALTER TABLE job_seeker_profiles ADD COLUMN about_me TEXT').run();
+  } catch (e) { }
+  try {
+    await db.prepare('ALTER TABLE job_seeker_profiles ADD COLUMN languages TEXT').run();
   } catch (e) { }
   try {
     await db.prepare('ALTER TABLE employer_profiles ADD COLUMN company_logo TEXT').run();

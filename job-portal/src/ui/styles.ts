@@ -1069,6 +1069,154 @@ export const JOB_PORTAL_STYLES = `
     transform: translateY(-1px);
   }
 
+  /* Application Status Badges */
+  .status-pill {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .status-pill-applied {
+    background: #EFF6FF;
+    color: #2563EB;
+    border: 1px solid #BFDBFE;
+  }
+  .status-pill-under_review {
+    background: #FEF3C7;
+    color: #D97706;
+    border: 1px solid #FDE68A;
+  }
+  .status-pill-shortlisted {
+    background: #ECFDF5;
+    color: #059669;
+    border: 1px solid #A7F3D0;
+  }
+  .status-pill-interview {
+    background: #F3E8FF;
+    color: #7C3AED;
+    border: 1px solid #DDD6FE;
+  }
+  .status-pill-selected, .status-pill-hired {
+    background: var(--primary-lime);
+    color: var(--deep-green);
+    border: 1px solid #BEF264;
+  }
+  .status-pill-rejected {
+    background: #FEE2E2;
+    color: #DC2626;
+    border: 1px solid #FECACA;
+  }
+  .status-pill-withdrawn {
+    background: #F1F5F9;
+    color: #64748B;
+    border: 1px solid #E2E8F0;
+  }
+
+  /* Tab Navigation inside Modals & Views */
+  .tab-nav-bar {
+    display: flex;
+    gap: 6px;
+    border-bottom: 1.5px solid var(--border-color);
+    margin-bottom: 18px;
+    overflow-x: auto;
+  }
+  .tab-nav-item {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--secondary-text);
+    padding: 8px 14px;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .tab-nav-item:hover, .tab-nav-item.active {
+    color: var(--primary-dark-green);
+    border-bottom-color: var(--primary-dark-green);
+  }
+
+  /* Resume Management Styles */
+  .resume-list-item {
+    background: #F8FAF7;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .resume-default-badge {
+    font-size: 10px;
+    font-weight: 800;
+    background: var(--primary-lime);
+    color: var(--deep-green);
+    padding: 2px 8px;
+    border-radius: 100px;
+  }
+
+  /* Dedicated Messages / Inbox Layout */
+  .inbox-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 16px;
+    background: #FFFFFF;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    height: 72vh;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 30px;
+  }
+  @media (max-width: 768px) {
+    .inbox-container {
+      grid-template-columns: 1fr;
+      height: 76vh;
+    }
+  }
+  .inbox-conversations-sidebar {
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    background: #FFFFFF;
+  }
+  .convo-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid #F1F5F9;
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    transition: background 0.15s ease;
+  }
+  .convo-item:hover, .convo-item.active {
+    background: #F8FAF7;
+  }
+  .inbox-chat-pane {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: #F8FAF7;
+  }
+
+  /* Form 2-Column Responsive Layout */
+  .form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 600px) {
+    .form-row-2col {
+      grid-template-columns: 1fr;
+    }
+  }
+
   /* Floating Bottom Nav for Mobile Only */
   .mobile-bottom-nav {
     display: none;
