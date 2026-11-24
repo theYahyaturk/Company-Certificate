@@ -100,7 +100,12 @@ export default {
       // -------------------------------------------------------------
       // 1. HOME & ADMIN HTML PAGES
       // -------------------------------------------------------------
-      if (path === '/' && method === 'GET') {
+      if (path === '/' && (method === 'GET' || method === 'HEAD')) {
+        if (method === 'HEAD') {
+          return new Response(null, {
+            headers: { 'Content-Type': 'text/html;charset=UTF-8', ...corsHeaders }
+          });
+        }
         // Fetch approved jobs for public view (support both company_name & company columns safely)
         const { results: rawJobs } = await env.DB.prepare(`
           SELECT 
