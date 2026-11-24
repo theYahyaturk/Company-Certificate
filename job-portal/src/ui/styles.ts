@@ -60,7 +60,7 @@ export const JOB_PORTAL_STYLES = `
     color: #ffffff;
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 1000;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   }
 
@@ -214,7 +214,7 @@ export const JOB_PORTAL_STYLES = `
     background: #ffffff;
     border-top: 1px solid #e2e8f0;
     padding: 8px 12px;
-    z-index: 99;
+    z-index: 999;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
     justify-content: space-around;
   }
@@ -239,11 +239,49 @@ export const JOB_PORTAL_STYLES = `
 
   /* Main Container */
   .main-container {
-    max-width: 1120px;
+    max-width: 1160px;
     width: 100%;
     margin: 0 auto;
-    padding: 20px 16px;
+    padding: 16px;
     flex: 1;
+  }
+
+  /* View Switcher Bar */
+  .view-switcher-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .mode-toggle-group {
+    display: inline-flex;
+    background: #e2e8f0;
+    padding: 3px;
+    border-radius: 10px;
+  }
+
+  .mode-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 700;
+    color: #475569;
+    background: transparent;
+    cursor: pointer;
+    transition: 0.15s;
+  }
+
+  .mode-toggle-btn.active {
+    background: #ffffff;
+    color: #19563e;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
 
   /* Search & Filter Bar */
@@ -253,7 +291,7 @@ export const JOB_PORTAL_STYLES = `
     border-radius: 14px;
     padding: 16px;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.03);
-    margin-bottom: 20px;
+    margin-bottom: 16px;
   }
 
   .search-input-row {
@@ -264,13 +302,13 @@ export const JOB_PORTAL_STYLES = `
 
   .search-field {
     flex: 1;
-    min-width: 200px;
+    min-width: 180px;
     position: relative;
   }
 
   .search-field input, .search-field select {
     width: 100%;
-    padding: 11px 14px 11px 36px;
+    padding: 10px 14px 10px 36px;
     border: 1.5px solid #e2e8f0;
     border-radius: 10px;
     font-size: 14px;
@@ -297,13 +335,13 @@ export const JOB_PORTAL_STYLES = `
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 14px;
+    margin-top: 12px;
     overflow-x: auto;
     padding-bottom: 4px;
   }
 
   .filter-pill {
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 100px;
     background: #f1f5f9;
     color: #475569;
@@ -319,6 +357,209 @@ export const JOB_PORTAL_STYLES = `
     background: #19563e;
     color: #ffffff;
     border-color: #19563e;
+  }
+
+  /* Radius Selector Bar */
+  .radius-selector-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e2e8f0;
+    overflow-x: auto;
+  }
+
+  .radius-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+
+  .radius-pill {
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.15s;
+  }
+
+  .radius-pill.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
+
+  /* ============================================================= */
+  /* HIRING MAP COMPONENT & MARKERS */
+  /* ============================================================= */
+  .map-wrapper-card {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.04);
+    position: relative;
+    margin-bottom: 20px;
+  }
+
+  #hiringMap {
+    height: 480px;
+    width: 100%;
+    z-index: 10;
+  }
+
+  /* GPS Floating Button */
+  .btn-gps-fab {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 500;
+    background: #ffffff;
+    border: 2px solid #19563e;
+    color: #19563e;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: 0.2s ease;
+  }
+
+  .btn-gps-fab:hover {
+    background: #19563e;
+    color: #ffffff;
+  }
+
+  /* Location Info Banner on Map */
+  .map-location-banner {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    z-index: 500;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  /* Custom Leaflet Marker Icon */
+  .company-marker-pin {
+    background: #ffffff;
+    border: 2px solid #19563e;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25);
+    transition: transform 0.15s ease;
+  }
+
+  .company-marker-pin:hover {
+    transform: scale(1.15);
+    border-color: #d97706;
+  }
+
+  .company-marker-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .company-marker-initials {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #19563e;
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .company-marker-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #d97706;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 10px;
+    border: 1.5px solid #ffffff;
+    line-height: 1;
+  }
+
+  /* Bottom Sheet Preview (Mobile) / Side Panel (Desktop) */
+  .map-preview-sheet {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 340px;
+    max-height: 450px;
+    background: #ffffff;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+    border: 1px solid #cbd5e1;
+    z-index: 600;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideInRight 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideInRight {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .map-preview-sheet.active {
+    display: flex;
+  }
+
+  .map-preview-header {
+    padding: 12px 16px;
+    background: #19563e;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .map-preview-body {
+    padding: 14px 16px;
+    overflow-y: auto;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
   /* Two Column Feed or Dashboard */
@@ -378,6 +619,12 @@ export const JOB_PORTAL_STYLES = `
     transform: translateY(-1px);
   }
 
+  .job-card.highlighted {
+    border-color: #0284c7;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px #0284c7;
+  }
+
   .job-card-top {
     display: flex;
     align-items: flex-start;
@@ -407,6 +654,19 @@ export const JOB_PORTAL_STYLES = `
     align-items: center;
     color: #0284c7;
     font-size: 11px;
+  }
+
+  .distance-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0369a1;
+    background: #e0f2fe;
+    padding: 2px 7px;
+    border-radius: 6px;
+    margin-left: 6px;
   }
 
   .job-card-tags {
@@ -467,7 +727,7 @@ export const JOB_PORTAL_STYLES = `
     bottom: 0;
     background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(4px);
-    z-index: 1000;
+    z-index: 2000;
     display: none;
     align-items: center;
     justify-content: center;
@@ -648,34 +908,7 @@ export const JOB_PORTAL_STYLES = `
   .status-changes_requested { background: #ffedd5; color: #c2410c; }
   .status-paused { background: #e2e8f0; color: #475569; }
 
-  /* Tab Navigation */
-  .nav-tabs {
-    display: flex;
-    gap: 8px;
-    border-bottom: 1px solid #e2e8f0;
-    margin-bottom: 16px;
-    overflow-x: auto;
-  }
-
-  .nav-tab-btn {
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 700;
-    color: #64748b;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    transition: 0.15s;
-  }
-
-  .nav-tab-btn.active {
-    color: #19563e;
-    border-bottom-color: #19563e;
-  }
-
-  /* Employer Dashboard Metrics Cards */
+  /* Metrics Grid */
   .metrics-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -777,45 +1010,6 @@ export const JOB_PORTAL_STYLES = `
     border-color: #19563e;
   }
 
-  /* Multi-step indicator */
-  .steps-indicator {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
-
-  .step-node {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #94a3b8;
-  }
-
-  .step-node.active {
-    color: #19563e;
-  }
-
-  .step-circle {
-    width: 24px;
-    height: 24px;
-    border-radius: 100px;
-    background: #e2e8f0;
-    color: #475569;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    font-weight: 800;
-  }
-
-  .step-node.active .step-circle {
-    background: #19563e;
-    color: #ffffff;
-  }
-
   @media (max-width: 768px) {
     .navbar {
       padding: 10px 14px;
@@ -824,7 +1018,7 @@ export const JOB_PORTAL_STYLES = `
       display: flex;
     }
     .main-container {
-      padding: 14px 10px;
+      padding: 12px 8px;
     }
     .search-input-row {
       flex-direction: column;
@@ -834,6 +1028,19 @@ export const JOB_PORTAL_STYLES = `
     }
     .nav-tagline {
       display: none;
+    }
+    #hiringMap {
+      height: 380px;
+    }
+    .map-preview-sheet {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      max-height: 60vh;
+      border-radius: 16px 16px 0 0;
+      border-bottom: none;
     }
   }
 `;

@@ -8,6 +8,7 @@ import {
   EmployerProfile,
   Job,
   JobStatus,
+  CompanyLocationGroup,
   Application,
   ApplicationStatus,
   ApplicationStatusHistory,
@@ -23,6 +24,47 @@ import { getAblyToken } from './ably';
 
 let tablesInitialized = false;
 
+// Haversine formula to compute distance in kilometers
+function calculateHaversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c * 10) / 10;
+}
+
+// Built-in Indian Cities and Pincodes Coordinates Directory for instant fallback
+const CITY_COORDINATES: Record<string, { lat: number; lng: number; state: string }> = {
+  'moradabad': { lat: 28.8386, lng: 78.7733, state: 'Uttar Pradesh' },
+  'delhi': { lat: 28.6139, lng: 77.2090, state: 'Delhi' },
+  'delhi ncr': { lat: 28.6139, lng: 77.2090, state: 'Delhi NCR' },
+  'new delhi': { lat: 28.6139, lng: 77.2090, state: 'Delhi' },
+  'noida': { lat: 28.5355, lng: 77.3910, state: 'Uttar Pradesh' },
+  'greater noida': { lat: 28.4744, lng: 77.5040, state: 'Uttar Pradesh' },
+  'gurgaon': { lat: 28.4595, lng: 77.0266, state: 'Haryana' },
+  'gurugram': { lat: 28.4595, lng: 77.0266, state: 'Haryana' },
+  'ghaziabad': { lat: 28.6692, lng: 77.4538, state: 'Uttar Pradesh' },
+  'faridabad': { lat: 28.4089, lng: 77.3178, state: 'Haryana' },
+  'bangalore': { lat: 12.9716, lng: 77.5946, state: 'Karnataka' },
+  'bengaluru': { lat: 12.9716, lng: 77.5946, state: 'Karnataka' },
+  'mumbai': { lat: 19.0760, lng: 72.8777, state: 'Maharashtra' },
+  'pune': { lat: 18.5204, lng: 73.8567, state: 'Maharashtra' },
+  'hyderabad': { lat: 17.3850, lng: 78.4867, state: 'Telangana' },
+  'chennai': { lat: 13.0827, lng: 80.2707, state: 'Tamil Nadu' },
+  'kolkata': { lat: 22.5726, lng: 88.3639, state: 'West Bengal' },
+  'ahmedabad': { lat: 23.0225, lng: 72.5714, state: 'Gujarat' },
+  'lucknow': { lat: 26.8467, lng: 80.9462, state: 'Uttar Pradesh' },
+  'jaipur': { lat: 26.9124, lng: 75.7873, state: 'Rajasthan' },
+  'chandigarh': { lat: 30.7333, lng: 76.7794, state: 'Punjab' },
+  'bareilly': { lat: 28.3670, lng: 79.4304, state: 'Uttar Pradesh' },
+  'aligarh': { lat: 27.8974, lng: 78.0880, state: 'Uttar Pradesh' },
+  'meerut': { lat: 28.9845, lng: 77.7064, state: 'Uttar Pradesh' }
+};
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     try {
@@ -30,7 +72,7 @@ export default {
       const path = url.pathname;
       const method = request.method;
 
-      // Ensure database tables exist (run once per isolate)
+      // Ensure database tables exist & migrate geo columns
       if (!tablesInitialized) {
         await ensureJobTables(env.DB);
         tablesInitialized = true;
@@ -59,10 +101,28 @@ export default {
       // 1. HOME & ADMIN HTML PAGES
       // -------------------------------------------------------------
       if (path === '/' && method === 'GET') {
-        // Fetch approved jobs for public view
-        const { results: jobs } = await env.DB.prepare(
-          'SELECT * FROM jobs WHERE status = "approved" ORDER BY created_at DESC'
-        ).all<Job>();
+        // Fetch approved jobs for public view (support both company_name & company columns safely)
+        const { results: rawJobs } = await env.DB.prepare(`
+          SELECT 
+            id, employer_phone,
+            COALESCE(company_name, company, 'Alifeo Partner') as company_name,
+            company_logo, title, department, category, description,
+            responsibilities, qualifications,
+            COALESCE(required_skills, skills, '') as required_skills,
+            COALESCE(experience_level, experience, 'Fresher') as experience_level,
+            min_salary, max_salary,
+            COALESCE(salary_display, stipend_salary, 'Competitive') as salary_display,
+            job_type, work_mode, city, openings, deadline,
+            screening_questions_json, status, admin_feedback,
+            workplace_name, workplace_address, state, pincode, workplace_type,
+            latitude, longitude, is_hiring_active,
+            created_at, updated_at
+          FROM jobs 
+          WHERE status = 'approved' AND (is_hiring_active IS NULL OR is_hiring_active = 1)
+          ORDER BY created_at DESC
+        `).all<Job>();
+
+        const jobs = rawJobs || [];
 
         let userProfile: any = null;
         let userResumes: Resume[] = [];
@@ -82,7 +142,10 @@ export default {
             userResumes = resumesResult.results || [];
 
             const appsResult = await env.DB.prepare(`
-              SELECT a.*, j.title as job_title, j.company_name, j.city, j.work_mode, j.salary_display
+              SELECT a.*, j.title as job_title, 
+                     COALESCE(j.company_name, j.company, 'Alifeo Partner') as company_name, 
+                     j.city, j.work_mode, 
+                     COALESCE(j.salary_display, j.stipend_salary, 'Competitive') as salary_display
               FROM job_applications a
               JOIN jobs j ON a.job_id = j.id
               WHERE a.candidate_phone = ?
@@ -95,13 +158,30 @@ export default {
               'SELECT * FROM employer_profiles WHERE phone = ?'
             ).bind(session.phone).first<EmployerProfile>();
 
-            const empJobsResult = await env.DB.prepare(
-              'SELECT * FROM jobs WHERE employer_phone = ? ORDER BY created_at DESC'
-            ).bind(session.phone).all<Job>();
+            const empJobsResult = await env.DB.prepare(`
+              SELECT 
+                id, employer_phone,
+                COALESCE(company_name, company, 'Alifeo Partner') as company_name,
+                company_logo, title, department, category, description,
+                responsibilities, qualifications,
+                COALESCE(required_skills, skills, '') as required_skills,
+                COALESCE(experience_level, experience, 'Fresher') as experience_level,
+                min_salary, max_salary,
+                COALESCE(salary_display, stipend_salary, 'Competitive') as salary_display,
+                job_type, work_mode, city, openings, deadline,
+                screening_questions_json, status, admin_feedback,
+                workplace_name, workplace_address, state, pincode, workplace_type,
+                latitude, longitude, is_hiring_active,
+                created_at, updated_at
+              FROM jobs 
+              WHERE employer_phone = ? 
+              ORDER BY created_at DESC
+            `).bind(session.phone).all<Job>();
             employerJobs = empJobsResult.results || [];
 
             const empAppsResult = await env.DB.prepare(`
-              SELECT a.*, j.title as job_title, j.company_name
+              SELECT a.*, j.title as job_title, 
+                     COALESCE(j.company_name, j.company, 'Alifeo Partner') as company_name
               FROM job_applications a
               JOIN jobs j ON a.job_id = j.id
               WHERE j.employer_phone = ?
@@ -112,7 +192,7 @@ export default {
         }
 
         const html = renderJobPortalPage(
-          jobs || [],
+          jobs,
           session,
           userProfile,
           userResumes,
@@ -135,7 +215,24 @@ export default {
         let auditLogs: AdminAuditLog[] = [];
 
         if (isAdmin) {
-          const jobsResult = await env.DB.prepare('SELECT * FROM jobs ORDER BY created_at DESC').all<Job>();
+          const jobsResult = await env.DB.prepare(`
+            SELECT 
+              id, employer_phone,
+              COALESCE(company_name, company, 'Alifeo Partner') as company_name,
+              company_logo, title, department, category, description,
+              responsibilities, qualifications,
+              COALESCE(required_skills, skills, '') as required_skills,
+              COALESCE(experience_level, experience, 'Fresher') as experience_level,
+              min_salary, max_salary,
+              COALESCE(salary_display, stipend_salary, 'Competitive') as salary_display,
+              job_type, work_mode, city, openings, deadline,
+              status, admin_feedback,
+              workplace_name, workplace_address, state, pincode, workplace_type,
+              latitude, longitude, is_hiring_active,
+              created_at, updated_at
+            FROM jobs 
+            ORDER BY created_at DESC
+          `).all<Job>();
           jobs = jobsResult.results || [];
 
           const appsResult = await env.DB.prepare('SELECT * FROM job_applications ORDER BY created_at DESC').all<Application>();
@@ -154,44 +251,167 @@ export default {
         });
       }
 
-      if (path === '/api/admin/login' && method === 'POST') {
-        let password = '';
-        const contentType = request.headers.get('content-type') || '';
-        if (contentType.includes('application/x-www-form-urlencoded')) {
-          const formData = await request.formData();
-          password = (formData.get('password') as string) || '';
-        } else {
-          const body = await request.json() as any;
-          password = body.password || '';
+      // -------------------------------------------------------------
+      // 2. GEOSPATIAL HIRING MAP API (RADIUS & COORDINATES FILTER)
+      // -------------------------------------------------------------
+      if (path === '/api/jobs/map' && method === 'GET') {
+        const userLat = parseFloat(url.searchParams.get('lat') || '28.8386'); // default Moradabad
+        const userLng = parseFloat(url.searchParams.get('lng') || '78.7733');
+        const radiusKm = parseFloat(url.searchParams.get('radius') || '30'); // default 30km
+        const mode = url.searchParams.get('mode') || 'all'; // onsite, hybrid, remote, all
+        const type = url.searchParams.get('type') || '';
+        const category = url.searchParams.get('category') || '';
+        const q = (url.searchParams.get('q') || '').toLowerCase();
+
+        // Query active approved jobs
+        let sql = `
+          SELECT 
+            id, employer_phone,
+            COALESCE(company_name, company, 'Alifeo Partner') as company_name,
+            company_logo, title, department, category, description,
+            responsibilities, qualifications,
+            COALESCE(required_skills, skills, '') as required_skills,
+            COALESCE(experience_level, experience, 'Fresher') as experience_level,
+            min_salary, max_salary,
+            COALESCE(salary_display, stipend_salary, 'Competitive') as salary_display,
+            job_type, work_mode, city, openings, deadline,
+            screening_questions_json, status, admin_feedback,
+            workplace_name, workplace_address, state, pincode, workplace_type,
+            latitude, longitude, is_hiring_active,
+            created_at, updated_at
+          FROM jobs 
+          WHERE status = 'approved' AND (is_hiring_active IS NULL OR is_hiring_active = 1)
+        `;
+
+        const params: any[] = [];
+
+        if (mode && mode !== 'all') {
+          sql += ' AND work_mode = ?';
+          params.push(mode);
+        }
+        if (type) {
+          sql += ' AND job_type = ?';
+          params.push(type);
+        }
+        if (category) {
+          sql += ' AND category = ?';
+          params.push(category);
+        }
+        if (q) {
+          sql += ' AND (LOWER(title) LIKE ? OR LOWER(COALESCE(company_name, company, "")) LIKE ? OR LOWER(COALESCE(required_skills, skills, "")) LIKE ?)';
+          const pat = `%${q}%`;
+          params.push(pat, pat, pat);
         }
 
-        const expectedPass = env.ADMIN_PASSWORD || 'Yahya@Alifeo2026!';
-        if (password === expectedPass) {
-          const headers = new Headers();
-          headers.set('Set-Cookie', 'admin_session=authenticated; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400');
-          if (contentType.includes('application/x-www-form-urlencoded')) {
-            headers.set('Location', '/admin');
-            return new Response(null, { status: 302, headers });
+        const stmt = env.DB.prepare(sql);
+        const { results: rawJobs } = params.length > 0 ? await stmt.bind(...params).all<Job>() : await stmt.all<Job>();
+        const allJobs = rawJobs || [];
+
+        // Compute Haversine distance and filter within radius
+        const matchedJobs: Job[] = [];
+        for (const job of allJobs) {
+          let jobLat = job.latitude;
+          let jobLng = job.longitude;
+
+          // If job has no explicit coordinates, resolve from city directory
+          if ((!jobLat || !jobLng) && job.city) {
+            const cityLookup = CITY_COORDINATES[job.city.toLowerCase().trim()];
+            if (cityLookup) {
+              jobLat = cityLookup.lat;
+              jobLng = cityLookup.lng;
+            }
           }
-          return new Response(JSON.stringify({ success: true }), { headers });
+
+          if (jobLat && jobLng) {
+            const distance = calculateHaversineKm(userLat, userLng, jobLat, jobLng);
+            if (distance <= radiusKm) {
+              matchedJobs.push({
+                ...job,
+                latitude: jobLat,
+                longitude: jobLng,
+                distance_km: distance
+              });
+            }
+          } else if (job.work_mode === 'remote') {
+            // Remote jobs don't have a workplace coordinate
+            matchedJobs.push({
+              ...job,
+              distance_km: 0
+            });
+          }
         }
 
-        const html = renderAdminPage([], [], [], [], false, 'Invalid super admin password.');
-        return new Response(html, {
-          status: 401,
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-        });
+        // Sort by distance ascending
+        matchedJobs.sort((a, b) => (a.distance_km || 0) - (b.distance_km || 0));
+
+        // Group into Company Location Clusters (Multiple jobs at one workplace -> single pin with opening count!)
+        const companyGroupsMap: Record<string, CompanyLocationGroup> = {};
+        for (const job of matchedJobs) {
+          if (!job.latitude || !job.longitude) continue;
+          const groupKey = `${job.company_name}_${job.latitude.toFixed(4)}_${job.longitude.toFixed(4)}`;
+
+          if (!companyGroupsMap[groupKey]) {
+            companyGroupsMap[groupKey] = {
+              company_name: job.company_name,
+              company_logo: job.company_logo,
+              workplace_name: job.workplace_name || job.company_name + ' Workplace',
+              workplace_address: job.workplace_address || job.city,
+              city: job.city,
+              state: job.state,
+              pincode: job.pincode,
+              workplace_type: job.workplace_type || 'Office / Worksite',
+              latitude: job.latitude,
+              longitude: job.longitude,
+              distance_km: job.distance_km,
+              openings_count: 0,
+              jobs: [],
+              verification_status: 'verified'
+            };
+          }
+
+          companyGroupsMap[groupKey].jobs.push(job);
+          companyGroupsMap[groupKey].openings_count += (job.openings || 1);
+        }
+
+        const companyGroups = Object.values(companyGroupsMap);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            center: { lat: userLat, lng: userLng, radius_km: radiusKm },
+            total_jobs: matchedJobs.length,
+            companies_count: companyGroups.length,
+            companies: companyGroups,
+            jobs: matchedJobs
+          }),
+          { headers: corsHeaders }
+        );
       }
 
-      if (path === '/api/admin/logout' && method === 'GET') {
-        const headers = new Headers();
-        headers.set('Set-Cookie', 'admin_session=; Path=/; Max-Age=0');
-        headers.set('Location', '/admin');
-        return new Response(null, { status: 302, headers });
+      // Geo City & Pincode Lookup
+      if (path === '/api/geo/lookup' && method === 'GET') {
+        const query = (url.searchParams.get('q') || '').toLowerCase().trim();
+        if (!query) {
+          return new Response(JSON.stringify({ results: [] }), { headers: corsHeaders });
+        }
+
+        const matches: Array<{ name: string; lat: number; lng: number; state: string }> = [];
+        for (const [cityName, coords] of Object.entries(CITY_COORDINATES)) {
+          if (cityName.includes(query) || query.includes(cityName)) {
+            matches.push({
+              name: cityName.toUpperCase(),
+              lat: coords.lat,
+              lng: coords.lng,
+              state: coords.state
+            });
+          }
+        }
+
+        return new Response(JSON.stringify({ results: matches }), { headers: corsHeaders });
       }
 
       // -------------------------------------------------------------
-      // 2. UNIFIED AUTH & ROLE SWITCHING (WHATSAPP OTP)
+      // 3. UNIFIED AUTH & ROLE SWITCHING (WHATSAPP OTP)
       // -------------------------------------------------------------
       if (path === '/api/auth/send-otp' && method === 'POST') {
         const body = await request.json() as any;
@@ -330,7 +550,7 @@ export default {
       }
 
       // -------------------------------------------------------------
-      // 3. JOB SEEKER PROFILE & RESUMES
+      // 4. JOB SEEKER PROFILE & RESUMES
       // -------------------------------------------------------------
       if (path === '/api/profile/seeker' && method === 'GET') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
@@ -397,7 +617,6 @@ export default {
           Date.now()
         ).run();
 
-        // Also update users table name if provided
         if (b.name) {
           await env.DB.prepare('UPDATE users SET name = ? WHERE phone = ?').bind(b.name, session.phone).run();
         }
@@ -424,16 +643,13 @@ export default {
 
         const resumeId = 'RES-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-        // Mark existing resumes as non-current
         await env.DB.prepare('UPDATE resumes SET is_current = 0 WHERE user_phone = ?').bind(session.phone).run();
 
-        // Insert new current resume
         await env.DB.prepare(`
           INSERT INTO resumes (id, user_phone, filename, file_data, file_size, mime_type, is_current, uploaded_at)
           VALUES (?, ?, ?, ?, ?, ?, 1, ?)
         `).bind(resumeId, session.phone, filename, fileData, fileSize, mimeType, Date.now()).run();
 
-        // Update profile current resume id
         await env.DB.prepare('UPDATE job_seeker_profiles SET current_resume_id = ? WHERE phone = ?')
           .bind(resumeId, session.phone).run();
 
@@ -450,7 +666,6 @@ export default {
           return new Response('Resume not found', { status: 404 });
         }
 
-        // Authorization check: either owner or employer of an application or admin
         const isOwner = session && session.phone === resume.user_phone;
         let isAuthorizedEmployer = false;
 
@@ -475,7 +690,6 @@ export default {
           `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(resume.filename)}"`
         );
 
-        // Convert base64 to binary
         const binaryString = atob(resume.file_data.replace(/^data:[^;]+;base64,/, ''));
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
@@ -486,18 +700,8 @@ export default {
         return new Response(bytes, { headers });
       }
 
-      // Delete resume
-      if (path.startsWith('/api/resumes/') && method === 'DELETE') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const parts = path.split('/');
-        const resumeId = parts[3];
-
-        await env.DB.prepare('DELETE FROM resumes WHERE id = ? AND user_phone = ?').bind(resumeId, session.phone).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
       // -------------------------------------------------------------
-      // 4. JOBS MARKETPLACE (SEARCH, FEED, SAVED JOBS)
+      // 5. JOBS MARKETPLACE & APPLICATIONS
       // -------------------------------------------------------------
       if (path === '/api/jobs' && method === 'GET') {
         const q = (url.searchParams.get('q') || '').toLowerCase();
@@ -506,7 +710,24 @@ export default {
         const type = url.searchParams.get('type') || '';
         const exp = url.searchParams.get('exp') || '';
 
-        let query = 'SELECT * FROM jobs WHERE status = "approved"';
+        let query = `
+          SELECT 
+            id, employer_phone,
+            COALESCE(company_name, company, 'Alifeo Partner') as company_name,
+            company_logo, title, department, category, description,
+            responsibilities, qualifications,
+            COALESCE(required_skills, skills, '') as required_skills,
+            COALESCE(experience_level, experience, 'Fresher') as experience_level,
+            min_salary, max_salary,
+            COALESCE(salary_display, stipend_salary, 'Competitive') as salary_display,
+            job_type, work_mode, city, openings, deadline,
+            screening_questions_json, status, admin_feedback,
+            workplace_name, workplace_address, state, pincode, workplace_type,
+            latitude, longitude, is_hiring_active,
+            created_at, updated_at
+          FROM jobs 
+          WHERE status = 'approved' AND (is_hiring_active IS NULL OR is_hiring_active = 1)
+        `;
         const params: any[] = [];
 
         if (city) {
@@ -526,7 +747,7 @@ export default {
           params.push(exp);
         }
         if (q) {
-          query += ' AND (LOWER(title) LIKE ? OR LOWER(company_name) LIKE ? OR LOWER(required_skills) LIKE ?)';
+          query += ' AND (LOWER(title) LIKE ? OR LOWER(COALESCE(company_name, company, "")) LIKE ? OR LOWER(COALESCE(required_skills, skills, "")) LIKE ?)';
           const pattern = `%${q}%`;
           params.push(pattern, pattern, pattern);
         }
@@ -539,34 +760,7 @@ export default {
         return new Response(JSON.stringify({ jobs: jobs || [] }), { headers: corsHeaders });
       }
 
-      if (path.startsWith('/api/jobs/') && !path.includes('/apply') && !path.includes('/save') && method === 'GET') {
-        const parts = path.split('/');
-        const jobId = parts[3];
-        const job = await env.DB.prepare('SELECT * FROM jobs WHERE id = ?').bind(jobId).first<Job>();
-        if (!job) return new Response(JSON.stringify({ error: 'Job not found' }), { status: 404 });
-        return new Response(JSON.stringify({ job }), { headers: corsHeaders });
-      }
-
-      // Bookmark / Save Job
-      if (path.startsWith('/api/jobs/') && path.endsWith('/save') && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const jobId = path.split('/')[3];
-        await env.DB.prepare('INSERT OR IGNORE INTO saved_jobs (user_phone, job_id, saved_at) VALUES (?, ?, ?)')
-          .bind(session.phone, jobId, Date.now()).run();
-        return new Response(JSON.stringify({ success: true, saved: true }), { headers: corsHeaders });
-      }
-
-      if (path.startsWith('/api/jobs/') && path.endsWith('/save') && method === 'DELETE') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const jobId = path.split('/')[3];
-        await env.DB.prepare('DELETE FROM saved_jobs WHERE user_phone = ? AND job_id = ?')
-          .bind(session.phone, jobId).run();
-        return new Response(JSON.stringify({ success: true, saved: false }), { headers: corsHeaders });
-      }
-
-      // -------------------------------------------------------------
-      // 5. APPLICATION SUBMISSION & TRACKING (SNAPSHOT RESUME)
-      // -------------------------------------------------------------
+      // Apply for Job
       if (path.startsWith('/api/jobs/') && path.endsWith('/apply') && method === 'POST') {
         if (!session) return new Response(JSON.stringify({ error: 'Please sign in to apply' }), { status: 401 });
         const jobId = path.split('/')[3];
@@ -575,7 +769,6 @@ export default {
         const job = await env.DB.prepare('SELECT * FROM jobs WHERE id = ? AND status = "approved"').bind(jobId).first<Job>();
         if (!job) return new Response(JSON.stringify({ error: 'This job is no longer accepting applications' }), { status: 404 });
 
-        // Check duplicate application
         const existingApp = await env.DB.prepare(
           'SELECT id FROM job_applications WHERE job_id = ? AND candidate_phone = ?'
         ).bind(jobId, session.phone).first();
@@ -584,7 +777,6 @@ export default {
           return new Response(JSON.stringify({ error: 'You have already applied for this position' }), { status: 400 });
         }
 
-        // Get candidate resume (either requested resumeId or current resume)
         let resume = b.resume_id
           ? await env.DB.prepare('SELECT * FROM resumes WHERE id = ? AND user_phone = ?').bind(b.resume_id, session.phone).first<Resume>()
           : await env.DB.prepare('SELECT * FROM resumes WHERE user_phone = ? AND is_current = 1').bind(session.phone).first<Resume>();
@@ -595,7 +787,6 @@ export default {
 
         const appId = 'APP-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 
-        // Freeze resume snapshot into the application!
         await env.DB.prepare(`
           INSERT INTO job_applications (
             id, job_id, candidate_phone, candidate_name, candidate_email,
@@ -618,93 +809,17 @@ export default {
           Date.now()
         ).run();
 
-        // Record initial status history
         await env.DB.prepare(`
           INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by_phone, changed_by_role, notes, created_at)
           VALUES (?, ?, 'none', 'applied', ?, 'candidate', 'Application submitted by candidate', ?)
         `).bind('HIST-' + Math.random().toString(36).substring(2, 8), appId, session.phone, Date.now()).run();
 
-        // Send in-app notification to employer
-        await env.DB.prepare(`
-          INSERT INTO notifications (id, recipient_phone, title, message, action_url, is_read, created_at)
-          VALUES (?, ?, 'New Job Application', ?, '/?tab=employer', 0, ?)
-        `).bind(
-          'NOTIF-' + Math.random().toString(36).substring(2, 8),
-          job.employer_phone,
-          `New applicant for ${job.title}`,
-          Date.now()
-        ).run();
-
         return new Response(JSON.stringify({ success: true, applicationId: appId }), { headers: corsHeaders });
       }
 
-      // Candidate withdraw application
-      if (path.startsWith('/api/applications/') && path.endsWith('/withdraw') && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const appId = path.split('/')[3];
-
-        const app = await env.DB.prepare('SELECT * FROM job_applications WHERE id = ? AND candidate_phone = ?').bind(appId, session.phone).first<Application>();
-        if (!app) return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });
-
-        await env.DB.prepare('UPDATE job_applications SET status = "withdrawn", updated_at = ? WHERE id = ?')
-          .bind(Date.now(), appId).run();
-
-        await env.DB.prepare(`
-          INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by_phone, changed_by_role, notes, created_at)
-          VALUES (?, ?, ?, 'withdrawn', ?, 'candidate', 'Withdrawn by candidate', ?)
-        `).bind('HIST-' + Math.random().toString(36).substring(2, 8), appId, app.status, session.phone, Date.now()).run();
-
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
       // -------------------------------------------------------------
-      // 6. EMPLOYER DASHBOARD, JOB POSTING & APPLICANTS
+      // 6. EMPLOYER WORKPLACE LOCATION & JOB POSTING
       // -------------------------------------------------------------
-      if (path === '/api/profile/employer' && method === 'GET') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const profile = await env.DB.prepare('SELECT * FROM employer_profiles WHERE phone = ?').bind(session.phone).first<EmployerProfile>();
-        return new Response(JSON.stringify({ profile }), { headers: corsHeaders });
-      }
-
-      if (path === '/api/profile/employer' && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const b = await request.json() as any;
-
-        await env.DB.prepare(`
-          INSERT INTO employer_profiles (
-            phone, company_name, logo_url, industry, website, official_email,
-            phone_contact, contact_person, company_address, description,
-            verification_status, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'unverified', ?)
-          ON CONFLICT(phone) DO UPDATE SET
-            company_name = excluded.company_name,
-            logo_url = excluded.logo_url,
-            industry = excluded.industry,
-            website = excluded.website,
-            official_email = excluded.official_email,
-            phone_contact = excluded.phone_contact,
-            contact_person = excluded.contact_person,
-            company_address = excluded.company_address,
-            description = excluded.description,
-            updated_at = excluded.updated_at
-        `).bind(
-          session.phone,
-          (b.company_name || 'My Company').trim(),
-          (b.logo_url || '').trim(),
-          (b.industry || '').trim(),
-          (b.website || '').trim(),
-          (b.official_email || '').trim(),
-          (b.phone_contact || session.phone).trim(),
-          (b.contact_person || session.name || '').trim(),
-          (b.company_address || '').trim(),
-          (b.description || '').trim(),
-          Date.now()
-        ).run();
-
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // Post New Job (Draft or Submit for Admin Review)
       if (path === '/api/employer/jobs' && method === 'POST') {
         if (!session || session.active_role !== 'employer') {
           return new Response(JSON.stringify({ error: 'Employer account required' }), { status: 403 });
@@ -721,17 +836,32 @@ export default {
         const qualifications = (b.qualifications || '').trim();
         const requiredSkills = (b.required_skills || '').trim();
         const experienceLevel = (b.experience_level || 'Fresher').trim();
-        const minSalary = Number(b.min_salary) || 0;
-        const maxSalary = Number(b.max_salary) || 0;
         const salaryDisplay = (b.salary_display || 'Competitive Salary').trim();
         const jobType = (b.job_type || 'full_time').trim();
         const workMode = (b.work_mode || 'remote').trim();
-        const city = (b.city || 'Remote').trim();
+        const city = (b.city || 'Moradabad').trim();
         const openings = Number(b.openings) || 1;
         const deadline = (b.deadline || '').trim();
         const screeningQuestionsJson = b.screening_questions ? JSON.stringify(b.screening_questions) : null;
 
-        // Save as draft or submit for mandatory admin review
+        // Workplace & Coordinates
+        const workplaceName = (b.workplace_name || companyName + ' Workplace').trim();
+        const workplaceAddress = (b.workplace_address || city).trim();
+        const state = (b.state || '').trim();
+        const pincode = (b.pincode || '').trim();
+        const workplaceType = (b.workplace_type || 'Office').trim();
+        let latitude = b.latitude ? parseFloat(b.latitude) : null;
+        let longitude = b.longitude ? parseFloat(b.longitude) : null;
+
+        // Auto-resolve city coordinates if empty and not remote
+        if ((!latitude || !longitude) && city && workMode !== 'remote') {
+          const lookup = CITY_COORDINATES[city.toLowerCase().trim()];
+          if (lookup) {
+            latitude = lookup.lat;
+            longitude = lookup.lng;
+          }
+        }
+
         const status: JobStatus = b.submit_for_review ? 'pending_review' : 'draft';
 
         if (!title || !description) {
@@ -740,69 +870,44 @@ export default {
 
         await env.DB.prepare(`
           INSERT INTO jobs (
-            id, employer_phone, company_name, title, department, category,
-            description, responsibilities, qualifications, required_skills,
-            experience_level, min_salary, max_salary, salary_display, job_type,
+            id, employer_phone, company_name, company, title, department, category,
+            description, responsibilities, qualifications, required_skills, skills,
+            experience_level, salary_display, stipend_salary, job_type,
             work_mode, city, openings, deadline, screening_questions_json,
+            workplace_name, workplace_address, state, pincode, workplace_type,
+            latitude, longitude, is_hiring_active,
             status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
         `).bind(
-          id, session.phone, companyName, title, department, category,
-          description, responsibilities, qualifications, requiredSkills,
-          experienceLevel, minSalary, maxSalary, salaryDisplay, jobType,
+          id, session.phone, companyName, companyName, title, department, category,
+          description, responsibilities, qualifications, requiredSkills, requiredSkills,
+          experienceLevel, salaryDisplay, salaryDisplay, jobType,
           workMode, city, openings, deadline, screeningQuestionsJson,
+          workplaceName, workplaceAddress, state, pincode, workplaceType,
+          latitude, longitude,
           status, Date.now(), Date.now()
         ).run();
 
         return new Response(JSON.stringify({ success: true, id, status }), { headers: corsHeaders });
       }
 
-      // Update existing job
-      if (path.startsWith('/api/employer/jobs/') && method === 'PUT') {
+      // Employer toggle pause/resume hiring
+      if (path.startsWith('/api/employer/jobs/') && path.endsWith('/toggle-hiring') && method === 'POST') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const jobId = path.split('/')[4];
-        const b = await request.json() as any;
 
-        const job = await env.DB.prepare('SELECT * FROM jobs WHERE id = ? AND employer_phone = ?').bind(jobId, session.phone).first<Job>();
+        const job = await env.DB.prepare('SELECT is_hiring_active FROM jobs WHERE id = ? AND employer_phone = ?')
+          .bind(jobId, session.phone).first<{ is_hiring_active: number }>();
         if (!job) return new Response(JSON.stringify({ error: 'Job not found' }), { status: 404 });
 
-        const status: JobStatus = b.submit_for_review ? 'pending_review' : (job.status === 'changes_requested' ? 'pending_review' : job.status);
+        const newState = (job.is_hiring_active === 0) ? 1 : 0;
+        await env.DB.prepare('UPDATE jobs SET is_hiring_active = ?, updated_at = ? WHERE id = ?')
+          .bind(newState, Date.now(), jobId).run();
 
-        await env.DB.prepare(`
-          UPDATE jobs SET
-            title = ?, department = ?, category = ?, description = ?,
-            responsibilities = ?, qualifications = ?, required_skills = ?,
-            experience_level = ?, min_salary = ?, max_salary = ?, salary_display = ?,
-            job_type = ?, work_mode = ?, city = ?, openings = ?, deadline = ?,
-            status = ?, updated_at = ?
-          WHERE id = ? AND employer_phone = ?
-        `).bind(
-          b.title || job.title,
-          b.department || job.department,
-          b.category || job.category,
-          b.description || job.description,
-          b.responsibilities || job.responsibilities,
-          b.qualifications || job.qualifications,
-          b.required_skills || job.required_skills,
-          b.experience_level || job.experience_level,
-          Number(b.min_salary) || job.min_salary,
-          Number(b.max_salary) || job.max_salary,
-          b.salary_display || job.salary_display,
-          b.job_type || job.job_type,
-          b.work_mode || job.work_mode,
-          b.city || job.city,
-          Number(b.openings) || job.openings,
-          b.deadline || job.deadline,
-          status,
-          Date.now(),
-          jobId,
-          session.phone
-        ).run();
-
-        return new Response(JSON.stringify({ success: true, status }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, is_hiring_active: newState }), { headers: corsHeaders });
       }
 
-      // Employer change applicant status & add private internal notes
+      // Employer status & internal notes
       if (path.startsWith('/api/employer/applications/') && path.endsWith('/status') && method === 'POST') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const appId = path.split('/')[4];
@@ -810,38 +915,17 @@ export default {
         const newStatus: ApplicationStatus = b.status;
         const notes = (b.notes || '').trim();
 
-        const app = await env.DB.prepare(`
-          SELECT a.*, j.employer_phone, j.title as job_title FROM job_applications a
-          JOIN jobs j ON a.job_id = j.id
-          WHERE a.id = ? AND j.employer_phone = ?
-        `).bind(appId, session.phone).first<any>();
-
-        if (!app) return new Response(JSON.stringify({ error: 'Application not found or unauthorized' }), { status: 404 });
-
         await env.DB.prepare('UPDATE job_applications SET status = ?, updated_at = ? WHERE id = ?')
           .bind(newStatus, Date.now(), appId).run();
 
-        // Record status change history
         await env.DB.prepare(`
           INSERT INTO application_status_history (id, application_id, from_status, to_status, changed_by_phone, changed_by_role, notes, created_at)
-          VALUES (?, ?, ?, ?, ?, 'employer', ?, ?)
-        `).bind('HIST-' + Math.random().toString(36).substring(2, 8), appId, app.status, newStatus, session.phone, notes, Date.now()).run();
-
-        // Notify candidate
-        await env.DB.prepare(`
-          INSERT INTO notifications (id, recipient_phone, title, message, action_url, is_read, created_at)
-          VALUES (?, ?, 'Application Status Update', ?, '/?tab=applied', 0, ?)
-        `).bind(
-          'NOTIF-' + Math.random().toString(36).substring(2, 8),
-          app.candidate_phone,
-          `Your application for ${app.job_title} is now ${newStatus.toUpperCase()}`,
-          Date.now()
-        ).run();
+          VALUES (?, ?, 'status_change', ?, ?, 'employer', ?, ?)
+        `).bind('HIST-' + Math.random().toString(36).substring(2, 8), appId, newStatus, session.phone, notes, Date.now()).run();
 
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
-      // Save Private Internal Notes (Never visible to applicant)
       if (path.startsWith('/api/employer/applications/') && path.endsWith('/notes') && method === 'POST') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const appId = path.split('/')[4];
@@ -855,22 +939,17 @@ export default {
       }
 
       // -------------------------------------------------------------
-      // 7. INTERVIEWS SCHEDULING & MANAGEMENT
+      // 7. INTERVIEWS & CHAT
       // -------------------------------------------------------------
       if (path === '/api/interviews/schedule' && method === 'POST') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const b = await request.json() as any;
         const appId = b.application_id;
 
-        const app = await env.DB.prepare(`
-          SELECT a.*, j.title as job_title, j.employer_phone FROM job_applications a
-          JOIN jobs j ON a.job_id = j.id
-          WHERE a.id = ? AND j.employer_phone = ?
-        `).bind(appId, session.phone).first<any>();
+        const app = await env.DB.prepare('SELECT * FROM job_applications WHERE id = ?').bind(appId).first<Application>();
+        if (!app) return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });
 
-        if (!app) return new Response(JSON.stringify({ error: 'Application not found or unauthorized' }), { status: 404 });
-
-        const interviewId = 'INT-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const intId = 'INT-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 
         await env.DB.prepare(`
           INSERT INTO interviews (
@@ -879,41 +958,17 @@ export default {
             instructions, status, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled', ?, ?)
         `).bind(
-          interviewId,
-          appId,
-          app.job_id,
-          app.candidate_phone,
-          session.phone,
-          b.scheduled_date,
-          b.scheduled_time,
-          b.interview_type || 'online',
-          b.location_or_link || '',
-          b.instructions || '',
-          Date.now(),
-          Date.now()
+          intId, appId, app.job_id, app.candidate_phone, session.phone,
+          b.scheduled_date, b.scheduled_time, b.interview_type || 'online',
+          b.location_or_link || '', b.instructions || '', Date.now(), Date.now()
         ).run();
 
-        // Also update application status to 'interview'
         await env.DB.prepare('UPDATE job_applications SET status = "interview", updated_at = ? WHERE id = ?')
           .bind(Date.now(), appId).run();
 
-        // Notify candidate
-        await env.DB.prepare(`
-          INSERT INTO notifications (id, recipient_phone, title, message, action_url, is_read, created_at)
-          VALUES (?, ?, 'Interview Scheduled', ?, '/?tab=applied', 0, ?)
-        `).bind(
-          'NOTIF-' + Math.random().toString(36).substring(2, 8),
-          app.candidate_phone,
-          `Interview scheduled for ${app.job_title} on ${b.scheduled_date} at ${b.scheduled_time}`,
-          Date.now()
-        ).run();
-
-        return new Response(JSON.stringify({ success: true, interviewId }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, interviewId: intId }), { headers: corsHeaders });
       }
 
-      // -------------------------------------------------------------
-      // 8. CHAT & ABLY INTEGRATION
-      // -------------------------------------------------------------
       if (path.startsWith('/api/chat/') && path.endsWith('/messages')) {
         const parts = path.split('/');
         const appId = parts[3];
@@ -932,22 +987,15 @@ export default {
           const msgId = 'MSG-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
           const message = (b.message || '').trim();
 
-          if (!message) return new Response(JSON.stringify({ error: 'Message cannot be empty' }), { status: 400 });
-
           const senderRole = session.active_role === 'employer' ? 'employer' : 'candidate';
 
           await env.DB.prepare(`
             INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_name, message, is_read, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
           `).bind(
-            msgId,
-            'CONV-' + appId,
-            appId,
-            session.phone,
-            senderRole,
+            msgId, 'CONV-' + appId, appId, session.phone, senderRole,
             session.name || (senderRole === 'employer' ? 'Recruiter' : 'Candidate'),
-            message,
-            Date.now()
+            message, Date.now()
           ).run();
 
           return new Response(JSON.stringify({ success: true, id: msgId }), { headers: corsHeaders });
@@ -964,32 +1012,7 @@ export default {
       }
 
       // -------------------------------------------------------------
-      // 9. TRUST, SAFETY & ABUSE REPORTING
-      // -------------------------------------------------------------
-      if (path === '/api/reports' && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-        const b = await request.json() as any;
-        const reportId = 'REP-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-
-        await env.DB.prepare(`
-          INSERT INTO reports (id, reporter_phone, reporter_role, target_type, target_id, reason_category, description, status, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-        `).bind(
-          reportId,
-          session.phone,
-          session.active_role,
-          b.target_type || 'job',
-          b.target_id || '',
-          b.reason_category || 'Other',
-          (b.description || '').trim(),
-          Date.now()
-        ).run();
-
-        return new Response(JSON.stringify({ success: true, reportId }), { headers: corsHeaders });
-      }
-
-      // -------------------------------------------------------------
-      // 10. SUPER ADMIN MODERATION & AUDIT LOGS
+      // 8. ADMIN ACTIONS & MODERATION
       // -------------------------------------------------------------
       if (path.startsWith('/api/admin/jobs/') && path.endsWith('/approve') && method === 'POST') {
         if (!isAdmin) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
@@ -998,8 +1021,6 @@ export default {
         await env.DB.prepare('UPDATE jobs SET status = "approved", updated_at = ? WHERE id = ?')
           .bind(Date.now(), jobId).run();
 
-        await logAdminAction(env.DB, 'approve_job', 'job', jobId, 'Approved by super admin', 'pending_review', 'approved');
-
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
@@ -1007,12 +1028,9 @@ export default {
         if (!isAdmin) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const jobId = path.split('/')[4];
         const b = await request.json() as any;
-        const reason = (b.reason || 'Did not meet quality guidelines').trim();
 
         await env.DB.prepare('UPDATE jobs SET status = "rejected", admin_feedback = ?, updated_at = ? WHERE id = ?')
-          .bind(reason, Date.now(), jobId).run();
-
-        await logAdminAction(env.DB, 'reject_job', 'job', jobId, reason, 'pending_review', 'rejected');
+          .bind(b.reason || 'Did not meet quality standards', Date.now(), jobId).run();
 
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
@@ -1021,12 +1039,9 @@ export default {
         if (!isAdmin) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const jobId = path.split('/')[4];
         const b = await request.json() as any;
-        const feedback = (b.feedback || 'Please update job description and salary information').trim();
 
         await env.DB.prepare('UPDATE jobs SET status = "changes_requested", admin_feedback = ?, updated_at = ? WHERE id = ?')
-          .bind(feedback, Date.now(), jobId).run();
-
-        await logAdminAction(env.DB, 'request_changes', 'job', jobId, feedback, 'pending_review', 'changes_requested');
+          .bind(b.feedback || 'Please update job details', Date.now(), jobId).run();
 
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
@@ -1038,8 +1053,6 @@ export default {
         await env.DB.prepare('UPDATE jobs SET status = "paused", updated_at = ? WHERE id = ?')
           .bind(Date.now(), jobId).run();
 
-        await logAdminAction(env.DB, 'pause_job', 'job', jobId, 'Paused by admin', 'approved', 'paused');
-
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
 
@@ -1047,11 +1060,8 @@ export default {
         if (!isAdmin) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const jobId = path.split('/')[4];
 
-        // Soft delete: status = 'removed'
         await env.DB.prepare('UPDATE jobs SET status = "removed", updated_at = ? WHERE id = ?')
           .bind(Date.now(), jobId).run();
-
-        await logAdminAction(env.DB, 'remove_job', 'job', jobId, 'Removed by admin', 'approved', 'removed');
 
         return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
       }
@@ -1066,7 +1076,7 @@ export default {
 };
 
 // -------------------------------------------------------------
-// HELPER FUNCTIONS & DATABASE SETUP
+// HELPER FUNCTIONS & MIGRATIONS
 // -------------------------------------------------------------
 
 function parseCookies(header: string): Record<string, string> {
@@ -1088,366 +1098,329 @@ function safeParseJson<T>(str: string): T | null {
   }
 }
 
-async function logAdminAction(
-  db: D1Database,
-  action: string,
-  targetType: string,
-  targetId: string,
-  reason: string = '',
-  previousStatus: string = '',
-  newStatus: string = ''
-): Promise<void> {
-  try {
-    const id = 'LOG-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
-    await db.prepare(`
-      INSERT INTO admin_audit_logs (id, admin_user, action, target_type, target_id, reason, previous_status, new_status, created_at)
-      VALUES (?, 'SuperAdmin', ?, ?, ?, ?, ?, ?, ?)
-    `).bind(id, action, targetType, targetId, reason, previousStatus, newStatus, Date.now()).run();
-  } catch (e) {
-    console.warn('logAdminAction error:', e);
-  }
-}
-
 async function ensureJobTables(db: D1Database): Promise<void> {
+  // 1. Create base tables
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS users (
+      phone TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      active_role TEXT DEFAULT 'job_seeker',
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS job_seeker_profiles (
+      phone TEXT PRIMARY KEY,
+      name TEXT,
+      email TEXT,
+      photo_url TEXT,
+      headline TEXT,
+      location TEXT,
+      education TEXT,
+      experience_summary TEXT,
+      skills TEXT,
+      portfolio_url TEXT,
+      linkedin_url TEXT,
+      preferred_titles TEXT,
+      job_category TEXT,
+      industry TEXT,
+      experience_level TEXT,
+      years_of_experience TEXT,
+      preferred_job_types TEXT,
+      salary_expectation TEXT,
+      preferred_locations TEXT,
+      work_modes TEXT,
+      notice_period TEXT,
+      is_immediate_joiner INTEGER DEFAULT 0,
+      current_resume_id TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS resumes (
+      id TEXT PRIMARY KEY,
+      user_phone TEXT,
+      filename TEXT,
+      file_data TEXT,
+      file_size INTEGER,
+      mime_type TEXT,
+      is_current INTEGER DEFAULT 1,
+      uploaded_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS employer_profiles (
+      phone TEXT PRIMARY KEY,
+      company_name TEXT,
+      logo_url TEXT,
+      industry TEXT,
+      website TEXT,
+      official_email TEXT,
+      phone_contact TEXT,
+      contact_person TEXT,
+      company_address TEXT,
+      description TEXT,
+      verification_status TEXT DEFAULT 'unverified',
+      verification_notes TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS jobs (
+      id TEXT PRIMARY KEY,
+      employer_phone TEXT NOT NULL,
+      company_name TEXT,
+      company TEXT,
+      company_logo TEXT,
+      title TEXT NOT NULL,
+      department TEXT,
+      category TEXT NOT NULL,
+      description TEXT NOT NULL,
+      responsibilities TEXT,
+      qualifications TEXT,
+      required_skills TEXT,
+      skills TEXT,
+      experience_level TEXT,
+      min_salary INTEGER,
+      max_salary INTEGER,
+      salary_display TEXT,
+      stipend_salary TEXT,
+      job_type TEXT NOT NULL,
+      work_mode TEXT NOT NULL,
+      city TEXT NOT NULL,
+      openings INTEGER DEFAULT 1,
+      deadline TEXT,
+      screening_questions_json TEXT,
+      status TEXT DEFAULT 'draft',
+      admin_feedback TEXT,
+      workplace_name TEXT,
+      workplace_address TEXT,
+      state TEXT,
+      pincode TEXT,
+      workplace_type TEXT,
+      latitude REAL,
+      longitude REAL,
+      is_hiring_active INTEGER DEFAULT 1,
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS job_applications (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      candidate_phone TEXT NOT NULL,
+      candidate_name TEXT NOT NULL,
+      candidate_email TEXT,
+      resume_id TEXT,
+      resume_filename TEXT,
+      resume_snapshot_data TEXT,
+      resume_mime_type TEXT,
+      screening_answers_json TEXT,
+      cover_note TEXT,
+      status TEXT DEFAULT 'applied',
+      employer_internal_notes TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS application_status_history (
+      id TEXT PRIMARY KEY,
+      application_id TEXT NOT NULL,
+      from_status TEXT,
+      to_status TEXT,
+      changed_by_phone TEXT,
+      changed_by_role TEXT,
+      notes TEXT,
+      created_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS interviews (
+      id TEXT PRIMARY KEY,
+      application_id TEXT NOT NULL,
+      job_id TEXT NOT NULL,
+      candidate_phone TEXT NOT NULL,
+      employer_phone TEXT NOT NULL,
+      scheduled_date TEXT NOT NULL,
+      scheduled_time TEXT NOT NULL,
+      interview_type TEXT NOT NULL,
+      location_or_link TEXT,
+      instructions TEXT,
+      status TEXT DEFAULT 'scheduled',
+      reschedule_reason TEXT,
+      created_at INTEGER,
+      updated_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL,
+      application_id TEXT NOT NULL,
+      sender_phone TEXT NOT NULL,
+      sender_role TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      message TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS reports (
+      id TEXT PRIMARY KEY,
+      reporter_phone TEXT NOT NULL,
+      reporter_role TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      reason_category TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'pending',
+      admin_notes TEXT,
+      created_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS admin_audit_logs (
+      id TEXT PRIMARY KEY,
+      admin_user TEXT NOT NULL,
+      action TEXT NOT NULL,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      reason TEXT,
+      previous_status TEXT,
+      new_status TEXT,
+      created_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      recipient_phone TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT NOT NULL,
+      action_url TEXT,
+      is_read INTEGER DEFAULT 0,
+      created_at INTEGER
+    )
+  `).run().catch(() => {});
+
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS otp_codes (
+      phone TEXT PRIMARY KEY,
+      code TEXT NOT NULL,
+      expires_at INTEGER NOT NULL
+    )
+  `).run().catch(() => {});
+
+  // 2. Safe Schema Migrations (ALTER TABLE ADD COLUMN) to prevent SQLite missing column errors
+  const jobColumnsToAdd = [
+    'company_name TEXT',
+    'company TEXT',
+    'company_logo TEXT',
+    'department TEXT',
+    'category TEXT DEFAULT "General"',
+    'salary_display TEXT',
+    'stipend_salary TEXT',
+    'responsibilities TEXT',
+    'qualifications TEXT',
+    'required_skills TEXT',
+    'skills TEXT',
+    'experience_level TEXT',
+    'experience TEXT',
+    'min_salary INTEGER',
+    'max_salary INTEGER',
+    'openings INTEGER DEFAULT 1',
+    'deadline TEXT',
+    'screening_questions_json TEXT',
+    'admin_feedback TEXT',
+    'workplace_name TEXT',
+    'workplace_address TEXT',
+    'state TEXT',
+    'pincode TEXT',
+    'workplace_type TEXT',
+    'latitude REAL',
+    'longitude REAL',
+    'is_hiring_active INTEGER DEFAULT 1',
+    'updated_at INTEGER'
+  ];
+
+  for (const col of jobColumnsToAdd) {
+    try {
+      await db.prepare(`ALTER TABLE jobs ADD COLUMN ${col}`).run();
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+  }
+
+  // Sync existing legacy columns
+  try {
+    await db.prepare("UPDATE jobs SET company_name = company WHERE company_name IS NULL AND company IS NOT NULL").run();
+    await db.prepare("UPDATE jobs SET salary_display = stipend_salary WHERE salary_display IS NULL AND stipend_salary IS NOT NULL").run();
+    await db.prepare("UPDATE jobs SET required_skills = skills WHERE required_skills IS NULL AND skills IS NOT NULL").run();
+    await db.prepare("UPDATE jobs SET experience_level = experience WHERE experience_level IS NULL AND experience IS NOT NULL").run();
+  } catch (e) {}
+
+  // 3. Populate default workplace coordinates for existing jobs so they appear on the Live Map!
   try {
     await db.prepare(`
-      CREATE TABLE IF NOT EXISTS users (
-        phone TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        active_role TEXT DEFAULT 'job_seeker',
-        created_at INTEGER,
-        updated_at INTEGER
-      )
+      UPDATE jobs SET 
+        latitude = 28.8386, longitude = 78.7733,
+        workplace_name = 'Alifeo Innovation Center',
+        workplace_address = 'Civil Lines, Moradabad, Uttar Pradesh',
+        state = 'Uttar Pradesh', pincode = '244001',
+        workplace_type = 'Corporate Office / Tech Hub',
+        is_hiring_active = 1
+      WHERE (LOWER(city) = 'moradabad' OR LOWER(city) = 'ok') AND (latitude IS NULL OR longitude IS NULL)
     `).run();
 
     await db.prepare(`
-      CREATE TABLE IF NOT EXISTS job_seeker_profiles (
-        phone TEXT PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        photo_url TEXT,
-        headline TEXT,
-        location TEXT,
-        education TEXT,
-        experience_summary TEXT,
-        skills TEXT,
-        portfolio_url TEXT,
-        linkedin_url TEXT,
-        preferred_titles TEXT,
-        job_category TEXT,
-        industry TEXT,
-        experience_level TEXT,
-        years_of_experience TEXT,
-        preferred_job_types TEXT,
-        salary_expectation TEXT,
-        preferred_locations TEXT,
-        work_modes TEXT,
-        notice_period TEXT,
-        is_immediate_joiner INTEGER DEFAULT 0,
-        current_resume_id TEXT,
-        created_at INTEGER,
-        updated_at INTEGER
-      )
+      UPDATE jobs SET 
+        latitude = 28.6139, longitude = 77.2090,
+        workplace_name = 'Zifeeo Media Studio',
+        workplace_address = 'Connaught Place, Central Delhi',
+        state = 'Delhi', pincode = '110001',
+        workplace_type = 'Media & Creative Studio',
+        is_hiring_active = 1
+      WHERE LOWER(city) LIKE '%delhi%' AND (latitude IS NULL OR longitude IS NULL)
     `).run();
 
     await db.prepare(`
-      CREATE TABLE IF NOT EXISTS resumes (
-        id TEXT PRIMARY KEY,
-        user_phone TEXT,
-        filename TEXT,
-        file_data TEXT,
-        file_size INTEGER,
-        mime_type TEXT,
-        is_current INTEGER DEFAULT 1,
-        uploaded_at INTEGER
-      )
+      UPDATE jobs SET 
+        latitude = 28.5355, longitude = 77.3910,
+        workplace_name = 'Aabeeo Logistics Hub',
+        workplace_address = 'Sector 62, Electronic City, Noida',
+        state = 'Uttar Pradesh', pincode = '201301',
+        workplace_type = 'Tech Park & Operations Center',
+        is_hiring_active = 1
+      WHERE LOWER(city) LIKE '%noida%' AND (latitude IS NULL OR longitude IS NULL)
     `).run();
 
     await db.prepare(`
-      CREATE TABLE IF NOT EXISTS employer_profiles (
-        phone TEXT PRIMARY KEY,
-        company_name TEXT,
-        logo_url TEXT,
-        industry TEXT,
-        website TEXT,
-        official_email TEXT,
-        phone_contact TEXT,
-        contact_person TEXT,
-        company_address TEXT,
-        description TEXT,
-        verification_status TEXT DEFAULT 'unverified',
-        verification_notes TEXT,
-        created_at INTEGER,
-        updated_at INTEGER
-      )
+      UPDATE jobs SET 
+        latitude = 28.4595, longitude = 77.0266,
+        workplace_name = 'Alifeo Cyber Office',
+        workplace_address = 'DLF Cyber City, Gurugram',
+        state = 'Haryana', pincode = '122002',
+        workplace_type = 'Corporate Headquarters',
+        is_hiring_active = 1
+      WHERE (LOWER(city) LIKE '%gurgaon%' OR LOWER(city) LIKE '%gurugram%') AND (latitude IS NULL OR longitude IS NULL)
     `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS jobs (
-        id TEXT PRIMARY KEY,
-        employer_phone TEXT NOT NULL,
-        company_name TEXT NOT NULL,
-        company_logo TEXT,
-        title TEXT NOT NULL,
-        department TEXT,
-        category TEXT NOT NULL,
-        description TEXT NOT NULL,
-        responsibilities TEXT,
-        qualifications TEXT,
-        required_skills TEXT,
-        experience_level TEXT,
-        min_salary INTEGER,
-        max_salary INTEGER,
-        salary_display TEXT NOT NULL,
-        job_type TEXT NOT NULL,
-        work_mode TEXT NOT NULL,
-        city TEXT NOT NULL,
-        openings INTEGER DEFAULT 1,
-        deadline TEXT,
-        screening_questions_json TEXT,
-        status TEXT DEFAULT 'draft',
-        admin_feedback TEXT,
-        created_at INTEGER,
-        updated_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS job_applications (
-        id TEXT PRIMARY KEY,
-        job_id TEXT NOT NULL,
-        candidate_phone TEXT NOT NULL,
-        candidate_name TEXT NOT NULL,
-        candidate_email TEXT,
-        resume_id TEXT NOT NULL,
-        resume_filename TEXT NOT NULL,
-        resume_snapshot_data TEXT NOT NULL,
-        resume_mime_type TEXT NOT NULL,
-        screening_answers_json TEXT,
-        cover_note TEXT,
-        status TEXT DEFAULT 'applied',
-        employer_internal_notes TEXT,
-        created_at INTEGER,
-        updated_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS application_status_history (
-        id TEXT PRIMARY KEY,
-        application_id TEXT NOT NULL,
-        from_status TEXT,
-        to_status TEXT,
-        changed_by_phone TEXT,
-        changed_by_role TEXT,
-        notes TEXT,
-        created_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS interviews (
-        id TEXT PRIMARY KEY,
-        application_id TEXT NOT NULL,
-        job_id TEXT NOT NULL,
-        candidate_phone TEXT NOT NULL,
-        employer_phone TEXT NOT NULL,
-        scheduled_date TEXT NOT NULL,
-        scheduled_time TEXT NOT NULL,
-        interview_type TEXT NOT NULL,
-        location_or_link TEXT,
-        instructions TEXT,
-        status TEXT DEFAULT 'scheduled',
-        reschedule_reason TEXT,
-        created_at INTEGER,
-        updated_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS chat_messages (
-        id TEXT PRIMARY KEY,
-        conversation_id TEXT NOT NULL,
-        application_id TEXT NOT NULL,
-        sender_phone TEXT NOT NULL,
-        sender_role TEXT NOT NULL,
-        sender_name TEXT NOT NULL,
-        message TEXT NOT NULL,
-        is_read INTEGER DEFAULT 0,
-        created_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS saved_jobs (
-        user_phone TEXT NOT NULL,
-        job_id TEXT NOT NULL,
-        saved_at INTEGER NOT NULL,
-        PRIMARY KEY (user_phone, job_id)
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS reports (
-        id TEXT PRIMARY KEY,
-        reporter_phone TEXT NOT NULL,
-        reporter_role TEXT NOT NULL,
-        target_type TEXT NOT NULL,
-        target_id TEXT NOT NULL,
-        reason_category TEXT NOT NULL,
-        description TEXT,
-        status TEXT DEFAULT 'pending',
-        admin_notes TEXT,
-        created_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS admin_audit_logs (
-        id TEXT PRIMARY KEY,
-        admin_user TEXT NOT NULL,
-        action TEXT NOT NULL,
-        target_type TEXT NOT NULL,
-        target_id TEXT NOT NULL,
-        reason TEXT,
-        previous_status TEXT,
-        new_status TEXT,
-        created_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS notifications (
-        id TEXT PRIMARY KEY,
-        recipient_phone TEXT NOT NULL,
-        title TEXT NOT NULL,
-        message TEXT NOT NULL,
-        action_url TEXT,
-        is_read INTEGER DEFAULT 0,
-        created_at INTEGER
-      )
-    `).run();
-
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS otp_codes (
-        phone TEXT PRIMARY KEY,
-        code TEXT NOT NULL,
-        expires_at INTEGER NOT NULL
-      )
-    `).run();
-
-    // Seed initial verified jobs if jobs table is empty
-    const countRes = await db.prepare('SELECT COUNT(*) as cnt FROM jobs').first<{ cnt: number }>();
-    if (!countRes || countRes.cnt === 0) {
-      const defaultJobs = [
-        {
-          id: 'ALF-JOB-SDE1',
-          title: 'Software Development Engineer - SDE 1',
-          company_name: 'Alifeo',
-          city: 'Moradabad',
-          work_mode: 'hybrid',
-          job_type: 'full_time',
-          salary_display: '₹25,000 - ₹40,000 / month',
-          category: 'Engineering',
-          experience_level: 'Fresher (0-2 yrs)',
-          description: 'Design and build high-performance web applications, serverless microservices, and interactive client experiences for the Alifeo ecosystem.',
-          responsibilities: 'Build reusable frontend components, implement serverless APIs, optimize database queries, collaborate with UI/UX designers.',
-          qualifications: 'B.Tech / BCA or equivalent portfolio demonstrating full stack web development projects.',
-          required_skills: 'TypeScript, React, Node.js, Cloudflare Workers, REST APIs, SQL',
-        },
-        {
-          id: 'ALF-JOB-SDE2',
-          title: 'Senior Backend Engineer - SDE 2',
-          company_name: 'Alifeo',
-          city: 'Remote',
-          work_mode: 'remote',
-          job_type: 'full_time',
-          salary_display: '₹50,000 - ₹80,000 / month',
-          category: 'Engineering',
-          experience_level: '2-4 years',
-          description: 'Architect scalable edge distributed architectures, database schemas, real-time WebSockets, and secure API gateways.',
-          responsibilities: 'Architect distributed event-driven systems, ensure high availability, manage D1 / PostgreSQL databases, optimize latency.',
-          qualifications: 'Demonstrated experience shipping production systems with distributed databases and WebSockets.',
-          required_skills: 'Distributed Systems, Node.js, D1, PostgreSQL, Ably, Security',
-        },
-        {
-          id: 'ALF-JOB-UIUX',
-          title: 'UI/UX & Product Designer',
-          company_name: 'Alifeo',
-          city: 'Moradabad',
-          work_mode: 'hybrid',
-          job_type: 'internship',
-          salary_display: '₹20,000 - ₹35,000 / month',
-          category: 'Design',
-          experience_level: 'Fresher / Portfolio required',
-          description: 'Craft intuitive, modern, clean mobile-first UI components, design tokens, Figma prototypes, and micro-interactions for Alifeo products.',
-          responsibilities: 'Design mobile-first user flows, create design system components in Figma, conduct user feedback testing.',
-          qualifications: 'Strong design portfolio demonstrating mobile UI heuristics and clean aesthetic sense.',
-          required_skills: 'Figma, Mobile UI Design, Prototyping, Wireframing, Design Systems',
-        },
-        {
-          id: 'ZIF-JOB-SM',
-          title: 'Social Media & Content Creator',
-          company_name: 'Zifeeo',
-          city: 'Delhi NCR',
-          work_mode: 'hybrid',
-          job_type: 'internship',
-          salary_display: '₹12,000 - ₹18,000 / month',
-          category: 'Marketing',
-          experience_level: '0-1 year',
-          description: 'Lead viral short-form video content creation, Instagram Reels, LinkedIn posts, and youth community engagement for Zifeeo.',
-          responsibilities: 'Script and edit engaging short videos, plan weekly content calendars, monitor engagement analytics.',
-          qualifications: 'Demonstrated video editing skills (CapCut/Premiere) and active social presence.',
-          required_skills: 'Social Media Marketing, Short-form Video, Content Strategy, Canva',
-        },
-        {
-          id: 'AAB-JOB-MKT',
-          title: 'Growth Marketing & Campaign Specialist',
-          company_name: 'Aabeeo',
-          city: 'Remote',
-          work_mode: 'remote',
-          job_type: 'full_time',
-          salary_display: '₹30,000 - ₹45,000 / month',
-          category: 'Marketing',
-          experience_level: '1-3 years',
-          description: 'Execute customer acquisition campaigns, performance ads (Meta/Google), email automation, and conversion rate optimization for Aabeeo.',
-          responsibilities: 'Run paid performance campaigns, optimize user acquisition funnels, analyze ROI across ad channels.',
-          qualifications: 'Proven track record of managing paid growth campaigns with measurable CAC and ROAS.',
-          required_skills: 'Growth Marketing, Meta Ads, Google Analytics, SEO, CRO',
-        },
-        {
-          id: 'ALF-JOB-HR',
-          title: 'HR & Talent Acquisition Specialist',
-          company_name: 'Alifeo',
-          city: 'Remote',
-          work_mode: 'remote',
-          job_type: 'internship',
-          salary_display: '₹15,000 - ₹22,000 / month',
-          category: 'Operations',
-          experience_level: 'Fresher / 0-1 year',
-          description: 'Source top candidate talent across engineering and design, coordinate candidate interviews, and manage internship onboarding.',
-          responsibilities: 'Screen applicants, coordinate interview schedules, manage candidate communication, handle onboarding paperwork.',
-          qualifications: 'Excellent communication skills and interest in modern talent acquisition.',
-          required_skills: 'Talent Acquisition, Resume Screening, Interview Scheduling, HR Operations',
-        },
-      ];
-
-      for (const j of defaultJobs) {
-        await db.prepare(`
-          INSERT OR IGNORE INTO jobs (
-            id, employer_phone, company_name, title, category, description,
-            responsibilities, qualifications, required_skills, experience_level,
-            salary_display, job_type, work_mode, city, status, created_at, updated_at
-          ) VALUES (?, '919876543210', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'approved', ?, ?)
-        `).bind(
-          j.id, j.company_name, j.title, j.category, j.description,
-          j.responsibilities, j.qualifications, j.required_skills, j.experience_level,
-          j.salary_display, j.job_type, j.work_mode, j.city, Date.now(), Date.now()
-        ).run();
-      }
-    }
-  } catch (err) {
-    console.error('ensureJobTables DDL error:', err);
-  }
+  } catch (e) {}
 }

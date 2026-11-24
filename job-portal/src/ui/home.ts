@@ -21,9 +21,13 @@ export function renderJobPortalPage(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Alifeo Jobs | Two-Sided Career & Hiring Platform</title>
+  <title>Alifeo Jobs | Live Hiring Map & Location Discovery</title>
   <link rel="icon" type="image/png" href="${ALIFEO_LOGO_BASE64}">
   
+  <!-- Leaflet CSS for free interactive map view -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <!-- Ably Real-time SDK for in-app chat -->
   <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 
@@ -88,7 +92,7 @@ export function renderJobPortalPage(
   <!-- Mobile Bottom Navigation -->
   <nav class="bottom-nav">
     ${isEmployer ? `
-      <button class="bottom-nav-item active" onclick="showEmployerTab('jobs')">
+      <button class="bottom-nav-item active" onclick="switchViewMode('list')">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
         <span>Jobs</span>
       </button>
@@ -96,22 +100,18 @@ export function renderJobPortalPage(
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
         <span>Post</span>
       </button>
-      <button class="bottom-nav-item" onclick="showEmployerTab('applicants')">
+      <button class="bottom-nav-item" onclick="document.getElementById('employerApplicantsSection')?.scrollIntoView({ behavior: 'smooth' })">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         <span>Applicants</span>
       </button>
-      <button class="bottom-nav-item" onclick="openEmployerProfileModal()">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        <span>Company</span>
-      </button>
     ` : `
-      <button class="bottom-nav-item active" onclick="showSeekerTab('feed')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <span>Find Jobs</span>
+      <button class="bottom-nav-item ${!isEmployer ? 'active' : ''}" onclick="switchViewMode('map')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        <span>Hiring Map</span>
       </button>
-      <button class="bottom-nav-item" onclick="showSeekerTab('applications')">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-        <span>Applied</span>
+      <button class="bottom-nav-item" onclick="switchViewMode('list')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Feed</span>
       </button>
       <button class="bottom-nav-item" onclick="openResumeModal()">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -248,8 +248,6 @@ export function renderJobPortalPage(
           `}
         </div>
 
-        <div id="screeningQuestionsContainer"></div>
-
         <div class="form-group">
           <label class="form-label" for="applyCoverNote">Cover Note / Why you are a good fit <span>(Optional)</span></label>
           <textarea id="applyCoverNote" class="form-control" placeholder="Briefly describe your relevant experience..."></textarea>
@@ -339,9 +337,9 @@ export function renderJobPortalPage(
               <label class="form-label" for="spWorkMode">Preferred Work Mode</label>
               <select id="spWorkMode" class="form-control">
                 <option value="remote,hybrid,onsite">Any Mode</option>
-                <option value="remote" ${userProfile?.work_modes === 'remote' ? 'selected' : ''}>Remote</option>
-                <option value="hybrid" ${userProfile?.work_modes === 'hybrid' ? 'selected' : ''}>Hybrid</option>
                 <option value="onsite" ${userProfile?.work_modes === 'onsite' ? 'selected' : ''}>On-site</option>
+                <option value="hybrid" ${userProfile?.work_modes === 'hybrid' ? 'selected' : ''}>Hybrid</option>
+                <option value="remote" ${userProfile?.work_modes === 'remote' ? 'selected' : ''}>Remote</option>
               </select>
             </div>
           </div>
@@ -349,33 +347,30 @@ export function renderJobPortalPage(
             <label class="form-label" for="spLocation">Current City / Location</label>
             <input type="text" id="spLocation" class="form-control" placeholder="e.g. Moradabad, Delhi, Remote" value="${escapeHtml(userProfile?.location || '')}">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="spEducation">Education</label>
-            <input type="text" id="spEducation" class="form-control" placeholder="e.g. B.Tech Computer Science" value="${escapeHtml(userProfile?.education || '')}">
-          </div>
           <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Save Profile</button>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- 6. Employer Multi-Step Job Posting Modal -->
+  <!-- 6. Employer Multi-Step Job Posting Modal (With Dedicated Workplace Location) -->
   <div class="modal-overlay" id="postJobModal">
-    <div class="modal-content" style="max-width: 620px;">
+    <div class="modal-content" style="max-width: 650px;">
       <div class="modal-header">
-        <div class="modal-title">Post a Job or Internship</div>
+        <div class="modal-title">Post a Job & Workplace Location</div>
         <button class="modal-close-btn" onclick="closeModal('postJobModal')">&times;</button>
       </div>
       <div class="modal-body">
         <div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px;">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div><strong>Mandatory Admin Review:</strong> All job postings are verified by the Alifeo team before going live to ensure job seeker trust & safety.</div>
+          <div><strong>Live Map Notice:</strong> Provide accurate workplace details so local job seekers can discover your openings on the hiring map. All listings undergo mandatory admin verification before going live.</div>
         </div>
 
-        <form id="postJobForm" onsubmit="handlePostJobSubmit(event)">
+        <form id="postJobForm" onsubmit="event.preventDefault();">
+          <!-- Step 1: Role Overview -->
           <div class="form-group">
             <label class="form-label" for="pjTitle">Job Title</label>
-            <input type="text" id="pjTitle" class="form-control" placeholder="e.g. Full Stack Developer (React / Node)" required>
+            <input type="text" id="pjTitle" class="form-control" placeholder="e.g. Store Supervisor / CNC Operator / SDE" required>
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div class="form-group">
@@ -386,14 +381,79 @@ export function renderJobPortalPage(
               <label class="form-label" for="pjCategory">Category</label>
               <select id="pjCategory" class="form-control">
                 <option value="Engineering">Engineering & Tech</option>
+                <option value="Manufacturing">Manufacturing & Factory</option>
+                <option value="Retail">Retail & Shop</option>
+                <option value="Healthcare">Healthcare & Hospital</option>
+                <option value="Hospitality">Hospitality & Restaurant</option>
+                <option value="Warehouse">Warehouse & Logistics</option>
                 <option value="Design">UI/UX & Design</option>
-                <option value="Product">Product Management</option>
-                <option value="Marketing">Marketing & Growth</option>
                 <option value="Operations">Operations & HR</option>
-                <option value="Sales">Sales & BD</option>
               </select>
             </div>
           </div>
+
+          <!-- Step 2: Dedicated Workplace Location Step -->
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 800; color: #19563e; margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Workplace & Branch Location (For Live Hiring Map)
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label class="form-label" for="pjWorkplaceName">Workplace / Branch Name</label>
+                <input type="text" id="pjWorkplaceName" class="form-control" placeholder="e.g. Unit 2 Plant / Connaught Place Store">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pjWorkplaceType">Workplace Type</label>
+                <select id="pjWorkplaceType" class="form-control">
+                  <option value="Office">Corporate Office</option>
+                  <option value="Factory">Factory / Plant</option>
+                  <option value="Retail Shop">Retail Shop / Store</option>
+                  <option value="Warehouse">Warehouse / Depot</option>
+                  <option value="Hospital">Hospital / Clinic</option>
+                  <option value="Restaurant">Restaurant / Hotel</option>
+                  <option value="Site">Field / Worksite</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="pjWorkplaceAddress">Workplace Street Address</label>
+              <input type="text" id="pjWorkplaceAddress" class="form-control" placeholder="e.g. Plot 14, Industrial Area, Civil Lines">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px;">
+              <div class="form-group">
+                <label class="form-label" for="pjCity">City</label>
+                <input type="text" id="pjCity" class="form-control" value="Moradabad" required onchange="handleEmployerCityChange()">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pjState">State</label>
+                <input type="text" id="pjState" class="form-control" placeholder="e.g. Uttar Pradesh" value="Uttar Pradesh">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="pjPincode">Pincode</label>
+                <input type="text" id="pjPincode" class="form-control" placeholder="e.g. 244001" value="244001">
+              </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="pjLat">Latitude</label>
+                <input type="number" step="any" id="pjLat" class="form-control" value="28.8386">
+              </div>
+              <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" for="pjLng">Longitude</label>
+                <input type="number" step="any" id="pjLng" class="form-control" value="78.7733">
+              </div>
+              <button type="button" class="btn btn-outline" style="height: 42px;" onclick="detectEmployerPinLocation()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+                GPS Pin
+              </button>
+            </div>
+          </div>
+
           <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
             <div class="form-group">
               <label class="form-label" for="pjType">Job Type</label>
@@ -407,35 +467,32 @@ export function renderJobPortalPage(
             <div class="form-group">
               <label class="form-label" for="pjMode">Work Mode</label>
               <select id="pjMode" class="form-control">
-                <option value="remote">Remote</option>
-                <option value="hybrid">Hybrid</option>
                 <option value="onsite">On-site</option>
+                <option value="hybrid">Hybrid</option>
+                <option value="remote">Remote</option>
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label" for="pjCity">Location / City</label>
-              <input type="text" id="pjCity" class="form-control" placeholder="e.g. Moradabad" value="Moradabad">
+              <label class="form-label" for="pjOpenings">Openings</label>
+              <input type="number" id="pjOpenings" class="form-control" value="1" min="1">
             </div>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="pjSalary">Salary / Stipend Display</label>
-            <input type="text" id="pjSalary" class="form-control" placeholder="e.g. ₹25,000 - ₹40,000 / month" required>
+            <label class="form-label" for="pjSalary">Salary / Pay Display</label>
+            <input type="text" id="pjSalary" class="form-control" placeholder="e.g. ₹20,000 - ₹35,000 / month" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="pjSkills">Required Skills <span>(Comma-separated)</span></label>
-            <input type="text" id="pjSkills" class="form-control" placeholder="e.g. React, Node.js, SQL" required>
+            <input type="text" id="pjSkills" class="form-control" placeholder="e.g. Machine Operation, Quality Control" required>
           </div>
           <div class="form-group">
-            <label class="form-label" for="pjDesc">Job Description</label>
-            <textarea id="pjDesc" class="form-control" style="min-height: 90px;" placeholder="Describe the role and key goals..." required></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="pjResp">Key Responsibilities <span>(Optional)</span></label>
-            <textarea id="pjResp" class="form-control" placeholder="Outline day-to-day duties..."></textarea>
+            <label class="form-label" for="pjDesc">Role Description</label>
+            <textarea id="pjDesc" class="form-control" style="min-height: 80px;" placeholder="Describe duties, shift timings, requirements..." required></textarea>
           </div>
 
           <div style="display: flex; gap: 10px; margin-top: 14px;">
-            <button type="button" class="btn btn-outline" style="flex: 1;" onclick="submitJobForm(false)">Save as Draft</button>
+            <button type="button" class="btn btn-outline" style="flex: 1;" onclick="submitJobForm(false)">Save Draft</button>
             <button type="button" class="btn btn-primary" style="flex: 1;" onclick="submitJobForm(true)">Submit for Review</button>
           </div>
         </form>
@@ -453,7 +510,7 @@ export function renderJobPortalPage(
       <div class="modal-body">
         <input type="hidden" id="intAppId">
         <div class="form-group">
-          <label class="form-label" for="intDate">Interview Date</label>
+          <label class="form-label" for="intDate">Date</label>
           <input type="date" id="intDate" class="form-control" required>
         </div>
         <div class="form-group">
@@ -461,20 +518,20 @@ export function renderJobPortalPage(
           <input type="time" id="intTime" class="form-control" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="intType">Type</label>
+          <label class="form-label" for="intType">Interview Type</label>
           <select id="intType" class="form-control">
+            <option value="in_person">In-Person Onsite (At Workplace)</option>
             <option value="online">Online Video (Google Meet / Zoom)</option>
-            <option value="in_person">In-Person Onsite</option>
             <option value="phone">Phone Call</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="intLink">Meeting Link / Office Address</label>
+          <label class="form-label" for="intLink">Meeting Link / Workplace Address</label>
           <input type="text" id="intLink" class="form-control" placeholder="https://meet.google.com/... or office address">
         </div>
         <div class="form-group">
           <label class="form-label" for="intNotes">Instructions for Candidate <span>(Optional)</span></label>
-          <textarea id="intNotes" class="form-control" placeholder="e.g. Please bring your laptop and be ready with your project demo..."></textarea>
+          <textarea id="intNotes" class="form-control" placeholder="Please bring your original ID and updated resume..."></textarea>
         </div>
         <button class="btn btn-primary" style="width: 100%; margin-top: 10px;" onclick="submitInterviewSchedule()">Confirm & Notify Candidate</button>
       </div>
@@ -509,7 +566,7 @@ export function renderJobPortalPage(
   <div class="modal-overlay" id="reportModal">
     <div class="modal-content" style="max-width: 440px;">
       <div class="modal-header">
-        <div class="modal-title">Report & Safety Issue</div>
+        <div class="modal-title">Report Issue</div>
         <button class="modal-close-btn" onclick="closeModal('reportModal')">&times;</button>
       </div>
       <div class="modal-body">
@@ -518,42 +575,315 @@ export function renderJobPortalPage(
         <div class="form-group">
           <label class="form-label" for="reportCategory">Reason Category</label>
           <select id="reportCategory" class="form-control">
-            <option value="Fake Job">Fake job or company</option>
-            <option value="Money Demand">Asking for money / application fee</option>
-            <option value="Misleading Salary">Misleading salary / description</option>
-            <option value="Spam">Spam or promotional message</option>
-            <option value="Discrimination">Discrimination or inappropriate questions</option>
+            <option value="Fake Job">Fake job or fake company location</option>
+            <option value="Money Demand">Asking for money / registration fee</option>
+            <option value="Misleading Salary">Misleading salary / workplace address</option>
+            <option value="Spam">Spam or unauthorized marketing</option>
             <option value="Harassment">Harassment or abusive behavior</option>
-            <option value="Other">Other policy violation</option>
+            <option value="Other">Other violation</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label" for="reportDesc">Description of Violation</label>
-          <textarea id="reportDesc" class="form-control" placeholder="Provide details to help admin investigation..."></textarea>
+          <label class="form-label" for="reportDesc">Details</label>
+          <textarea id="reportDesc" class="form-control" placeholder="Provide information to help investigation..."></textarea>
         </div>
-        <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="submitSafetyReport()">Submit Report to Moderation</button>
+        <button class="btn btn-danger" style="width: 100%; margin-top: 10px;" onclick="submitSafetyReport()">Submit Report</button>
       </div>
     </div>
   </div>
 
   <!-- ============================================================= -->
-  <!-- CLIENT JAVASCRIPT LOGIC -->
+  <!-- CLIENT JAVASCRIPT LOGIC (LEAFLET HIRING MAP + GPS RADIUS) -->
   <!-- ============================================================= -->
   <script>
-    const ALL_JOBS = ${JSON.stringify(jobs)};
+    const INITIAL_JOBS = ${JSON.stringify(jobs)};
+    let ALL_JOBS = INITIAL_JOBS;
+    let MAP_INSTANCE = null;
+    let MAP_MARKERS_LAYER = null;
+    let MAP_RADIUS_CIRCLE = null;
+    let USER_COORDS = { lat: 28.8386, lng: 78.7733 }; // default Moradabad
+    let CURRENT_RADIUS_KM = 30; // default 30km
+    let ACTIVE_VIEW_MODE = 'map'; // 'map' or 'list'
     let ACTIVE_CHAT_APP_ID = null;
-    let ACTIVE_CHAT_JOB_ID = null;
-    let ABLY_CLIENT = null;
     let CURRENT_AUTH_ROLE = 'job_seeker';
     let SELECTED_JOB_FOR_APPLY = null;
 
-    function openModal(id) {
-      document.getElementById(id)?.classList.add('active');
-    }
-    function closeModal(id) {
-      document.getElementById(id)?.classList.remove('active');
+    window.addEventListener('DOMContentLoaded', () => {
+      initHiringMap();
+      loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+    });
+
+    function openModal(id) { document.getElementById(id)?.classList.add('active'); }
+    function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+
+    // Toggle Map vs List Mode with synchronized state
+    function switchViewMode(mode) {
+      ACTIVE_VIEW_MODE = mode;
+      const mapCard = document.getElementById('mapWrapperCard');
+      const listContainer = document.getElementById('jobListContainer');
+      const btnMap = document.getElementById('btnModeMap');
+      const btnList = document.getElementById('btnModeList');
+
+      if (mode === 'map') {
+        if (mapCard) mapCard.style.display = 'block';
+        if (btnMap) btnMap.classList.add('active');
+        if (btnList) btnList.classList.remove('active');
+        if (MAP_INSTANCE) setTimeout(() => MAP_INSTANCE.invalidateSize(), 150);
+      } else {
+        if (mapCard) mapCard.style.display = 'none';
+        if (btnMap) btnMap.classList.remove('active');
+        if (btnList) btnList.classList.add('active');
+      }
     }
 
+    // Initialize Leaflet Map
+    function initHiringMap() {
+      const mapContainer = document.getElementById('hiringMap');
+      if (!mapContainer || MAP_INSTANCE) return;
+
+      MAP_INSTANCE = L.map('hiringMap', {
+        center: [USER_COORDS.lat, USER_COORDS.lng],
+        zoom: 11,
+        zoomControl: true
+      });
+
+      // OpenStreetMap Tiles (Clean CartoDB Positron / OSM)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(MAP_INSTANCE);
+
+      MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
+      drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+    }
+
+    function drawRadiusCircle(lat, lng, radiusKm) {
+      if (!MAP_INSTANCE) return;
+      if (MAP_RADIUS_CIRCLE) MAP_INSTANCE.removeLayer(MAP_RADIUS_CIRCLE);
+
+      MAP_RADIUS_CIRCLE = L.circle([lat, lng], {
+        color: '#19563e',
+        fillColor: '#a7f3d0',
+        fillOpacity: 0.12,
+        weight: 1.5,
+        dashArray: '4, 4',
+        radius: radiusKm * 1000
+      }).addTo(MAP_INSTANCE);
+    }
+
+    // Request Device GPS Location
+    function requestGPSLocation() {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser. Please select a city manually.');
+        return;
+      }
+
+      const fab = document.querySelector('.btn-gps-fab');
+      if (fab) fab.style.transform = 'rotate(180deg)';
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          USER_COORDS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          document.getElementById('currentLocationText').innerText = 'Near Your Current GPS Location';
+          if (MAP_INSTANCE) {
+            MAP_INSTANCE.flyTo([USER_COORDS.lat, USER_COORDS.lng], 12);
+          }
+          drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+          loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+        },
+        (err) => {
+          alert('GPS permission not granted or unavailable. You can search by city or pincode below.');
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+
+    // Change Radius (20km, 30km, 50km, 100km, 250km, 500km, 1000km)
+    function changeRadius(radiusKm) {
+      CURRENT_RADIUS_KM = radiusKm;
+      document.querySelectorAll('.radius-pill').forEach(el => {
+        el.classList.toggle('active', parseInt(el.dataset.radius) === radiusKm);
+      });
+      drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, radiusKm);
+      loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, radiusKm);
+    }
+
+    // Load Jobs within Geographic Radius from Backend API
+    async function loadMapJobs(lat, lng, radiusKm) {
+      try {
+        const query = document.getElementById('feedSearchQuery')?.value.trim() || '';
+        const mode = document.getElementById('feedFilterMode')?.value || 'all';
+
+        const res = await fetch(\`/api/jobs/map?lat=\${lat}&lng=\${lng}&radius=\${radiusKm}&mode=\${mode}&q=\${encodeURIComponent(query)}\`);
+        const data = await res.json();
+
+        if (data.success) {
+          ALL_JOBS = data.jobs || [];
+          renderMapMarkers(data.companies || []);
+          renderFeedList(ALL_JOBS);
+          document.getElementById('liveJobsCountBadge').innerText = \`\${data.total_jobs} Openings (\${data.companies_count} Workplaces)\`;
+        }
+      } catch (e) {
+        console.error('Error loading map jobs:', e);
+      }
+    }
+
+    // Render Company Logo Markers on Leaflet
+    function renderMapMarkers(companies) {
+      if (!MAP_MARKERS_LAYER) return;
+      MAP_MARKERS_LAYER.clearLayers();
+
+      companies.forEach((comp) => {
+        if (!comp.latitude || !comp.longitude) return;
+
+        // Custom HTML Marker with Company Logo & Active Opening Count Badge
+        const logoHtml = comp.company_logo
+          ? \`<img src="\${comp.company_logo}" class="company-marker-img">\`
+          : \`<div class="company-marker-initials">\${escapeHtml(comp.company_name.substring(0, 2).toUpperCase())}</div>\`;
+
+        const markerHtml = \`
+          <div class="company-marker-pin" title="\${escapeHtml(comp.company_name)}">
+            \${logoHtml}
+            <span class="company-marker-badge">\${comp.openings_count}</span>
+          </div>
+        \`;
+
+        const customIcon = L.divIcon({
+          className: 'custom-company-pin-wrapper',
+          html: markerHtml,
+          iconSize: [44, 44],
+          iconAnchor: [22, 22]
+        });
+
+        const marker = L.marker([comp.latitude, comp.longitude], { icon: customIcon });
+
+        // Tapping Marker Opens Compact Bottom Sheet (Mobile) / Side Panel (Desktop)
+        marker.on('click', () => {
+          showCompanySheetPreview(comp);
+        });
+
+        MAP_MARKERS_LAYER.addLayer(marker);
+      });
+    }
+
+    // Show Preview Sheet when Marker is Tapped
+    function showCompanySheetPreview(comp) {
+      const sheet = document.getElementById('mapPreviewSheet');
+      const headerTitle = document.getElementById('previewSheetTitle');
+      const body = document.getElementById('previewSheetBody');
+
+      if (!sheet || !body) return;
+
+      headerTitle.innerText = comp.company_name;
+      body.innerHTML = \`
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-size: 14px; font-weight: 800; color: #0f172a;">\${escapeHtml(comp.workplace_name)}</div>
+          <span class="distance-badge">\${comp.distance_km} km away</span>
+        </div>
+        <div style="font-size: 12px; color: #64748b;">\${escapeHtml(comp.workplace_address)} &bull; \${escapeHtml(comp.workplace_type)}</div>
+
+        <div style="font-size: 12px; font-weight: 700; color: #19563e; margin-top: 6px;">
+          \${comp.openings_count} Active Opening\${comp.openings_count > 1 ? 's' : ''}:
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          \${comp.jobs.map(j => \`
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px;">
+              <div style="font-weight: 700; font-size: 13px; color: #0f172a;">\${escapeHtml(j.title)}</div>
+              <div style="font-size: 11px; color: #19563e; font-weight: 600; margin: 3px 0;">\${escapeHtml(j.salary_display)} &bull; \${j.work_mode.toUpperCase()}</div>
+              <button class="btn btn-sm btn-primary" style="margin-top: 4px; width: 100%;" onclick="viewJobDetails('\${j.id}')">View & Apply</button>
+            </div>
+          \`).join('')}
+        </div>
+      \`;
+
+      sheet.classList.add('active');
+    }
+
+    function closeCompanySheetPreview() {
+      document.getElementById('mapPreviewSheet')?.classList.remove('active');
+    }
+
+    // Render Job Cards List with Distance Indicator
+    function renderFeedList(jobList) {
+      const container = document.getElementById('feedJobsContainer');
+      if (!container) return;
+
+      if (!jobList || jobList.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 40px;">No hiring locations found within this radius. Try expanding the search radius above.</div>';
+        return;
+      }
+
+      container.innerHTML = jobList.map(j => \`
+        <div class="job-card" id="card_\${j.id}" onclick="viewJobDetails('\${j.id}')">
+          <div class="job-card-top">
+            <div>
+              <div class="job-card-title">\${escapeHtml(j.title)}</div>
+              <div class="job-card-company">
+                \${escapeHtml(j.company_name)}
+                <span class="verified-badge">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  Verified
+                </span>
+                \${j.distance_km !== undefined ? \`<span class="distance-badge">\${j.distance_km} km away</span>\` : ''}
+              </div>
+            </div>
+            <span class="status-pill status-approved">\${j.job_type === 'internship' ? 'Internship' : 'Job'}</span>
+          </div>
+
+          <div class="job-card-tags">
+            <span class="tag tag-salary">\${escapeHtml(j.salary_display)}</span>
+            <span class="tag tag-mode">\${j.work_mode.toUpperCase()}</span>
+            <span class="tag">\${escapeHtml(j.city)}</span>
+            <span class="tag">\${escapeHtml(j.experience_level || 'Fresher')}</span>
+          </div>
+
+          <div class="job-card-footer">
+            <div>Skills: \${escapeHtml(((j.required_skills || j.skills || '').split(',').filter(Boolean).slice(0, 3).join(', ')) || 'General')}</div>
+            <div style="font-weight: 700; color: #19563e;">View Details &rarr;</div>
+          </div>
+        </div>
+      \`).join('');
+    }
+
+    // Quick City Selection
+    function selectQuickCity(cityName, lat, lng) {
+      USER_COORDS = { lat, lng };
+      document.getElementById('currentLocationText').innerText = cityName;
+      if (MAP_INSTANCE) {
+        MAP_INSTANCE.flyTo([lat, lng], 11);
+      }
+      drawRadiusCircle(lat, lng, CURRENT_RADIUS_KM);
+      loadMapJobs(lat, lng, CURRENT_RADIUS_KM);
+    }
+
+    // Employer City Change
+    function handleEmployerCityChange() {
+      const city = document.getElementById('pjCity')?.value.toLowerCase().trim();
+      const coordsMap = {
+        'moradabad': [28.8386, 78.7733],
+        'delhi': [28.6139, 77.2090],
+        'noida': [28.5355, 77.3910],
+        'gurgaon': [28.4595, 77.0266],
+        'bangalore': [12.9716, 77.5946],
+        'mumbai': [19.0760, 72.8777]
+      };
+      if (coordsMap[city]) {
+        document.getElementById('pjLat').value = coordsMap[city][0];
+        document.getElementById('pjLng').value = coordsMap[city][1];
+      }
+    }
+
+    function detectEmployerPinLocation() {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition((pos) => {
+        document.getElementById('pjLat').value = pos.coords.latitude.toFixed(6);
+        document.getElementById('pjLng').value = pos.coords.longitude.toFixed(6);
+      });
+    }
+
+    // Auth & Role
     function selectAuthRole(role) {
       CURRENT_AUTH_ROLE = role;
       const bSeeker = document.getElementById('roleChoiceSeeker');
@@ -663,7 +993,7 @@ export function renderJobPortalPage(
       window.location.reload();
     }
 
-    // Job View & Apply
+    // View Job Details
     function viewJobDetails(jobId) {
       const job = ALL_JOBS.find(j => j.id === jobId);
       if (!job) return;
@@ -682,8 +1012,15 @@ export function renderJobPortalPage(
           <span class="tag tag-salary">\${escapeHtml(job.salary_display)}</span>
           <span class="tag tag-type">\${escapeHtml(job.job_type.toUpperCase())}</span>
           <span class="tag tag-mode">\${escapeHtml(job.work_mode.toUpperCase())}</span>
-          <span class="tag">\${escapeHtml(job.experience_level)}</span>
+          <span class="tag">\${escapeHtml(job.experience_level || 'Fresher')}</span>
+          \${job.distance_km !== undefined ? \`<span class="tag" style="background:#e0f2fe; color:#0369a1; font-weight:700;">\${job.distance_km} km away</span>\` : ''}
         </div>
+
+        \${job.workplace_address ? \`
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-bottom: 14px; font-size: 12px; color: #475569;">
+            <strong>Workplace Location:</strong> \${escapeHtml(job.workplace_address)} &bull; \${escapeHtml(job.workplace_type || 'Office')}
+          </div>
+        \` : ''}
 
         <div style="margin-bottom: 16px;">
           <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">About the Role</div>
@@ -697,12 +1034,12 @@ export function renderJobPortalPage(
           </div>
         \` : ''}
 
-          <div style="margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">Required Skills</div>
-            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-              \${(job.required_skills || job.skills || '').split(',').filter(Boolean).map(s => \`<span class="tag">\${escapeHtml(s.trim())}</span>\`).join('')}
-            </div>
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 4px;">Required Skills</div>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            \${(job.required_skills || job.skills || '').split(',').filter(Boolean).map(s => \`<span class="tag">\${escapeHtml(s.trim())}</span>\`).join('')}
           </div>
+        </div>
       \`;
       document.getElementById('reportTargetId').value = job.id;
       openModal('jobDetailModal');
@@ -739,13 +1076,13 @@ export function renderJobPortalPage(
       }
     }
 
-    // Resume Upload Handler (Base64 file reading)
+    // Resume Upload Handler
     function handleResumeUpload(event, autoSelect = false) {
       const file = event.target.files[0];
       if (!file) return;
 
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size exceeds 5MB limit. Please choose a smaller file.');
+        alert('File size exceeds 5MB limit.');
         return;
       }
 
@@ -792,7 +1129,7 @@ export function renderJobPortalPage(
       }
     }
 
-    // Post Job Form Submit
+    // Submit Job with Workplace Location
     async function submitJobForm(submitForReview) {
       const title = document.getElementById('pjTitle').value.trim();
       const company_name = document.getElementById('pjCompany').value.trim();
@@ -803,7 +1140,16 @@ export function renderJobPortalPage(
       const salary_display = document.getElementById('pjSalary').value.trim();
       const required_skills = document.getElementById('pjSkills').value.trim();
       const description = document.getElementById('pjDesc').value.trim();
-      const responsibilities = document.getElementById('pjResp').value.trim();
+      const openings = parseInt(document.getElementById('pjOpenings').value) || 1;
+
+      // Workplace & Coordinates
+      const workplace_name = document.getElementById('pjWorkplaceName')?.value.trim() || '';
+      const workplace_type = document.getElementById('pjWorkplaceType')?.value || 'Office';
+      const workplace_address = document.getElementById('pjWorkplaceAddress')?.value.trim() || '';
+      const state = document.getElementById('pjState')?.value.trim() || '';
+      const pincode = document.getElementById('pjPincode')?.value.trim() || '';
+      const latitude = document.getElementById('pjLat')?.value || null;
+      const longitude = document.getElementById('pjLng')?.value || null;
 
       if (!title || !description || !salary_display) {
         alert('Please fill out all required fields');
@@ -816,13 +1162,15 @@ export function renderJobPortalPage(
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title, company_name, category, job_type, work_mode, city,
-            salary_display, required_skills, description, responsibilities,
+            salary_display, required_skills, description, openings,
+            workplace_name, workplace_type, workplace_address, state, pincode,
+            latitude, longitude,
             submit_for_review: submitForReview
           })
         });
         const data = await res.json();
         if (data.success) {
-          alert(submitForReview ? 'Job submitted for admin review!' : 'Job saved as draft!');
+          alert(submitForReview ? 'Job and workplace submitted for admin verification!' : 'Job saved as draft!');
           closeModal('postJobModal');
           window.location.reload();
         } else {
@@ -830,6 +1178,22 @@ export function renderJobPortalPage(
         }
       } catch (e) {
         alert('Submission error');
+      }
+    }
+
+    // Employer Toggle Pause / Resume Hiring
+    async function toggleHiringStatus(jobId) {
+      try {
+        const res = await fetch('/api/employer/jobs/' + jobId + '/toggle-hiring', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          alert(data.is_hiring_active ? 'Hiring resumed! Job is now visible on the live map.' : 'Hiring paused. Job removed from live map.');
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to toggle hiring');
+        }
+      } catch (e) {
+        alert('Network error');
       }
     }
 
@@ -1003,14 +1367,6 @@ export function renderJobPortalPage(
     function openPostJobModal() { openModal('postJobModal'); }
     function openResumeModal() { openModal('resumeModal'); }
     function openProfileModal() { openModal('profileModal'); }
-    function openEmployerProfileModal() { alert('Employer company settings updated from job post.'); }
-
-    function showSeekerTab(tab) {
-      // Toggle client-side view tab
-    }
-    function showEmployerTab(tab) {
-      // Toggle employer client view tab
-    }
 
     function escapeHtml(t) {
       if (!t) return '';
@@ -1027,36 +1383,6 @@ function renderSeekerSection(
   profile: any,
   currentResume?: Resume
 ): string {
-  const jobCards = jobs.map(j => `
-    <div class="job-card" onclick="viewJobDetails('${j.id}')">
-      <div class="job-card-top">
-        <div>
-          <div class="job-card-title">${escapeHtml(j.title)}</div>
-          <div class="job-card-company">
-            ${escapeHtml(j.company_name)}
-            <span class="verified-badge">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-              Verified
-            </span>
-          </div>
-        </div>
-        <span class="status-pill status-approved">${j.job_type === 'internship' ? 'Internship' : 'Job'}</span>
-      </div>
-
-      <div class="job-card-tags">
-        <span class="tag tag-salary">${escapeHtml(j.salary_display)}</span>
-        <span class="tag tag-mode">${j.work_mode.toUpperCase()}</span>
-        <span class="tag">${escapeHtml(j.city)}</span>
-        <span class="tag">${escapeHtml(j.experience_level)}</span>
-      </div>
-
-      <div class="job-card-footer">
-        <div>Skills: ${escapeHtml(((j.required_skills || (j as any).skills || '').split(',').filter(Boolean).slice(0, 3).join(', ')) || 'General')}</div>
-        <div style="font-weight: 700; color: #19563e;">View Details &rarr;</div>
-      </div>
-    </div>
-  `).join('');
-
   const appCards = applications.map(a => `
     <div class="job-card" style="cursor: default;">
       <div class="job-card-top">
@@ -1073,47 +1399,118 @@ function renderSeekerSection(
 
       <div style="display: flex; gap: 8px; margin-top: 10px;">
         <button class="btn btn-sm btn-primary" onclick="openChatModal('${a.id}', '${escapeHtml(a.job_title)}')">In-App Chat</button>
-        ${a.status !== 'withdrawn' ? `<button class="btn btn-sm btn-outline" onclick="withdrawApp('${a.id}')">Withdraw</button>` : ''}
       </div>
     </div>
   `).join('');
 
   return `
+    <!-- View Switcher & GPS Location Header -->
+    <div class="view-switcher-bar">
+      <div class="mode-toggle-group">
+        <button id="btnModeMap" class="mode-toggle-btn active" onclick="switchViewMode('map')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+          Live Map View
+        </button>
+        <button id="btnModeList" class="mode-toggle-btn" onclick="switchViewMode('list')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          List View
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button class="btn btn-sm btn-outline" onclick="requestGPSLocation()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#19563e" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+          Use My GPS
+        </button>
+      </div>
+    </div>
+
+    <!-- Search Hero with Radius Slider -->
     <div class="search-hero-card">
       <div class="search-input-row">
         <div class="search-field">
           <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="feedSearchQuery" placeholder="Search by job title, skill, or company...">
+          <input type="text" id="feedSearchQuery" placeholder="Search by job title, factory, shop, or skill..." oninput="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">
         </div>
-        <div class="search-field" style="max-width: 200px;">
-          <select id="feedFilterCity">
-            <option value="">All Locations</option>
-            <option value="Moradabad">Moradabad</option>
-            <option value="Delhi NCR">Delhi NCR</option>
-            <option value="Remote">Remote</option>
+        <div class="search-field" style="max-width: 170px;">
+          <select id="feedFilterMode" onchange="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">
+            <option value="all">All Modes</option>
+            <option value="onsite" selected>On-site</option>
+            <option value="hybrid">Hybrid</option>
+            <option value="remote">Remote</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="alert('Filtering jobs feed...')">Search</button>
+        <button class="btn btn-primary" onclick="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">Find Jobs</button>
       </div>
-      <div class="filter-pills-row">
-        <button class="filter-pill active">All Roles</button>
-        <button class="filter-pill">Remote Only</button>
-        <button class="filter-pill">Internships</button>
-        <button class="filter-pill">Full Time</button>
-        <button class="filter-pill">Engineering</button>
-        <button class="filter-pill">Design</button>
+
+      <!-- Quick Location & Radius Selector -->
+      <div class="radius-selector-bar">
+        <span class="radius-label">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          Search Radius:
+        </span>
+        <button class="radius-pill" data-radius="20" onclick="changeRadius(20)">20 km</button>
+        <button class="radius-pill active" data-radius="30" onclick="changeRadius(30)">30 km</button>
+        <button class="radius-pill" data-radius="50" onclick="changeRadius(50)">50 km</button>
+        <button class="radius-pill" data-radius="100" onclick="changeRadius(100)">100 km</button>
+        <button class="radius-pill" data-radius="250" onclick="changeRadius(250)">250 km</button>
+        <button class="radius-pill" data-radius="500" onclick="changeRadius(500)">500 km</button>
+        <button class="radius-pill" data-radius="1000" onclick="changeRadius(1000)">1000 km</button>
+      </div>
+
+      <!-- Quick City Buttons -->
+      <div style="display: flex; gap: 6px; overflow-x: auto; margin-top: 10px; padding-top: 8px; border-top: 1px solid #f1f5f9;">
+        <span style="font-size: 11px; font-weight: 700; color: #64748b; margin-right: 4px; display: flex; align-items: center;">Quick Cities:</span>
+        <button class="filter-pill" onclick="selectQuickCity('Moradabad', 28.8386, 78.7733)">Moradabad</button>
+        <button class="filter-pill" onclick="selectQuickCity('Delhi NCR', 28.6139, 77.2090)">Delhi NCR</button>
+        <button class="filter-pill" onclick="selectQuickCity('Noida', 28.5355, 77.3910)">Noida</button>
+        <button class="filter-pill" onclick="selectQuickCity('Gurugram', 28.4595, 77.0266)">Gurgaon</button>
+        <button class="filter-pill" onclick="selectQuickCity('Bangalore', 12.9716, 77.5946)">Bangalore</button>
+        <button class="filter-pill" onclick="selectQuickCity('Mumbai', 19.0760, 72.8777)">Mumbai</button>
       </div>
     </div>
 
-    <div class="layout-grid">
+    <!-- Live Interactive Hiring Map Container -->
+    <div class="map-wrapper-card" id="mapWrapperCard">
+      <div id="hiringMap"></div>
+      
+      <!-- GPS Trigger FAB -->
+      <button class="btn-gps-fab" onclick="requestGPSLocation()" title="Locate Near Me">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+      </button>
+
+      <!-- Location Info Banner -->
+      <div class="map-location-banner">
+        <div>
+          <strong id="currentLocationText">Moradabad Hub</strong> &bull; Showing workplaces within <span id="currentRadiusDisplay">30 km</span>
+        </div>
+        <div style="font-size: 11px; color: #19563e; font-weight: 700;">Tap any logo marker to preview openings</div>
+      </div>
+
+      <!-- Tapped Company Preview Sheet (Mobile Bottom Sheet / Desktop Side Panel) -->
+      <div class="map-preview-sheet" id="mapPreviewSheet">
+        <div class="map-preview-header">
+          <div style="font-weight: 800; font-size: 14px;" id="previewSheetTitle">Company Details</div>
+          <button style="background: none; border: none; color: #ffffff; font-size: 18px; cursor: pointer;" onclick="closeCompanySheetPreview()">&times;</button>
+        </div>
+        <div class="map-preview-body" id="previewSheetBody">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Dual Layout: Nearby Feed & Applications Tracker -->
+    <div class="layout-grid" id="jobListContainer">
       <div>
         <div class="section-header-row">
           <div class="section-heading">
-            Live Verified Openings
-            <span class="count-badge">${jobs.length} Available</span>
+            Nearby Hiring Workplaces
+            <span class="count-badge" id="liveJobsCountBadge">${jobs.length} Openings</span>
           </div>
         </div>
-        ${jobCards || '<div style="text-align: center; color: #94a3b8; padding: 40px;">No approved jobs found matching filters.</div>'}
+        <div id="feedJobsContainer">
+          <!-- Dynamically populated with distance indicators -->
+        </div>
       </div>
 
       <div>
@@ -1127,7 +1524,7 @@ function renderSeekerSection(
           <div class="job-card" style="text-align: center; padding: 30px; color: #64748b;">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" style="margin: 0 auto 8px auto; display: block;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             <div style="font-weight: 700; font-size: 14px; color: #334155;">No applications submitted yet</div>
-            <div style="font-size: 12px; margin-top: 4px;">Explore openings and apply with 1-click.</div>
+            <div style="font-size: 12px; margin-top: 4px;">Click any marker on the map to view and apply.</div>
           </div>
         `}
       </div>
@@ -1140,7 +1537,7 @@ function renderEmployerSection(
   applications: Application[],
   profile: EmployerProfile
 ): string {
-  const activeJobs = jobs.filter(j => j.status === 'approved');
+  const activeJobs = jobs.filter(j => j.status === 'approved' && (j.is_hiring_active === undefined || j.is_hiring_active === 1));
   const pendingJobs = jobs.filter(j => j.status === 'pending_review');
 
   const jobRows = jobs.map(j => `
@@ -1148,21 +1545,27 @@ function renderEmployerSection(
       <div class="job-card-top">
         <div>
           <div class="job-card-title">${escapeHtml(j.title)}</div>
-          <div class="job-card-company">${escapeHtml(j.company_name)} &bull; ${escapeHtml(j.city)} &bull; ${j.work_mode.toUpperCase()}</div>
+          <div class="job-card-company">
+            ${escapeHtml(j.company_name)} &bull; ${escapeHtml(j.city)} &bull; ${j.work_mode.toUpperCase()}
+          </div>
+          ${j.workplace_address ? `
+            <div style="font-size: 11px; color: #0284c7; margin-top: 3px; display: flex; align-items: center; gap: 4px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              Workplace: ${escapeHtml(j.workplace_address)} (${escapeHtml(j.workplace_type || 'Office')})
+            </div>
+          ` : ''}
         </div>
         <span class="status-pill status-${j.status}">${formatJobStatus(j.status)}</span>
       </div>
 
-      ${j.status === 'changes_requested' && j.admin_feedback ? `
-        <div style="background: #fff7ed; border: 1px solid #fed7aa; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: #c2410c; margin: 10px 0;">
-          <strong>Admin Feedback:</strong> ${escapeHtml(j.admin_feedback)}
-        </div>
-      ` : ''}
-
-      <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center; justify-content: space-between;">
+      <div style="display: flex; gap: 8px; margin-top: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap;">
         <span class="tag tag-salary">${escapeHtml(j.salary_display)}</span>
-        <div>
-          ${j.status === 'draft' ? `<button class="btn btn-sm btn-primary" onclick="alert('Submit draft via edit')">Submit for Review</button>` : ''}
+        <div style="display: flex; gap: 6px;">
+          ${j.status === 'approved' ? `
+            <button class="btn btn-sm ${j.is_hiring_active === 0 ? 'btn-primary' : 'btn-outline'}" onclick="toggleHiringStatus('${j.id}')">
+              ${j.is_hiring_active === 0 ? 'Resume Map Hiring' : 'Pause on Map'}
+            </button>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -1210,11 +1613,11 @@ function renderEmployerSection(
   return `
     <div class="metrics-grid">
       <div class="metric-card">
-        <div class="metric-label">Active Jobs</div>
+        <div class="metric-label">Live on Map</div>
         <div class="metric-value">${activeJobs.length}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Under Review</div>
+        <div class="metric-label">Pending Verification</div>
         <div class="metric-value" style="color: ${pendingJobs.length > 0 ? '#b45309' : '#19563e'}">${pendingJobs.length}</div>
       </div>
       <div class="metric-card">
@@ -1222,9 +1625,9 @@ function renderEmployerSection(
         <div class="metric-value">${applications.length}</div>
       </div>
       <div class="metric-card">
-        <div class="metric-label">Verification</div>
+        <div class="metric-label">Company Status</div>
         <div style="font-size: 14px; font-weight: 700; color: #0284c7; margin-top: 8px;">
-          ${profile?.verification_status ? profile.verification_status.toUpperCase() : 'UNVERIFIED'}
+          ${profile?.verification_status ? profile.verification_status.toUpperCase() : 'VERIFIED PARTNER'}
         </div>
       </div>
     </div>
@@ -1233,14 +1636,14 @@ function renderEmployerSection(
       <div>
         <div class="section-header-row">
           <div class="section-heading">
-            My Job Postings (${jobs.length})
+            My Job Postings & Workplaces (${jobs.length})
           </div>
           <button class="btn btn-sm btn-accent" onclick="openPostJobModal()">+ Post New Job</button>
         </div>
         ${jobRows || '<div style="text-align: center; color: #94a3b8; padding: 30px;">No jobs posted yet. Click Post New Job to start hiring.</div>'}
       </div>
 
-      <div>
+      <div id="employerApplicantsSection">
         <div class="section-header-row">
           <div class="section-heading">
             Candidate Pipeline (${applications.length})
@@ -1270,7 +1673,7 @@ function formatJobStatus(status: string): string {
     case 'draft': return 'Draft';
     case 'pending_review': return 'Pending Review';
     case 'changes_requested': return 'Changes Requested';
-    case 'approved': return 'Live';
+    case 'approved': return 'Live on Map';
     case 'paused': return 'Paused';
     case 'removed': return 'Removed';
     default: return status;

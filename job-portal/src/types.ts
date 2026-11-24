@@ -89,6 +89,7 @@ export interface Job {
   id: string;
   employer_phone: string;
   company_name: string;
+  company?: string;
   company_logo?: string;
   title: string;
   department?: string;
@@ -97,20 +98,51 @@ export interface Job {
   responsibilities?: string;
   qualifications?: string;
   required_skills: string;
+  skills?: string;
   experience_level: string; // Fresher, 1-2 yrs, etc.
   min_salary?: number;
   max_salary?: number;
   salary_display: string;
+  stipend_salary?: string;
   job_type: JobType;
   work_mode: WorkMode;
   city: string;
   openings: number;
   deadline?: string;
-  screening_questions_json?: string; // JSON array of ScreeningQuestion
+  screening_questions_json?: string;
   status: JobStatus;
   admin_feedback?: string;
+  
+  // Location & Geospatial fields
+  workplace_name?: string;
+  workplace_address?: string;
+  state?: string;
+  pincode?: string;
+  workplace_type?: string; // Office, Factory, Retail Shop, Warehouse, Hospital, Restaurant, etc.
+  latitude?: number;
+  longitude?: number;
+  distance_km?: number;
+  is_hiring_active?: number;
+
   created_at: number;
   updated_at: number;
+}
+
+export interface CompanyLocationGroup {
+  company_name: string;
+  company_logo?: string;
+  workplace_name?: string;
+  workplace_address?: string;
+  city: string;
+  state?: string;
+  pincode?: string;
+  workplace_type?: string;
+  latitude: number;
+  longitude: number;
+  distance_km?: number;
+  openings_count: number;
+  jobs: Job[];
+  verification_status: string;
 }
 
 export type ApplicationStatus = 'applied' | 'under_review' | 'shortlisted' | 'interview' | 'selected' | 'rejected' | 'withdrawn';
@@ -120,6 +152,7 @@ export interface Application {
   job_id: string;
   job_title?: string;
   company_name?: string;
+  company?: string;
   city?: string;
   work_mode?: string;
   salary_display?: string;
