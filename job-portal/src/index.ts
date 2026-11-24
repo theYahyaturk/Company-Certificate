@@ -4,14 +4,20 @@ import { renderAdminPage } from './ui/admin';
 import { sendWhatsAppOtp } from './whatsapp';
 import { getAblyToken } from './ably';
 
+let tablesInitialized = false;
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const method = request.method;
+    try {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const method = request.method;
 
-    // Ensure database tables exist
-    await ensureJobTables(env.DB);
+      // Ensure database tables exist (run once per isolate)
+      if (!tablesInitialized) {
+        await ensureJobTables(env.DB);
+        tablesInitialized = true;
+      }
 
     // Parse Cookies
     const cookieHeader = request.headers.get('Cookie') || '';
@@ -463,7 +469,11 @@ export default {
 
     // 404 Catch-all
     return new Response('Not Found', { status: 404 });
-  },
+  } catch (err: any) {
+    console.error('Alifeo Job Worker Error:', err);
+    return new Response('Server Error: ' + (err?.message || 'Unknown error'), { status: 500 });
+  }
+},
 };
 
 // -------------------------------------------------------------
@@ -490,59 +500,69 @@ function safeParseJson<T>(str: string): T | null {
 }
 
 async function ensureJobTables(db: D1Database): Promise<void> {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS jobs (
-      id TEXT PRIMARY KEY,
-      title TEXT NOT NULL,
-      company TEXT NOT NULL,
-      company_logo TEXT,
-      city TEXT NOT NULL,
-      work_mode TEXT NOT NULL,
-      job_type TEXT NOT NULL,
-      stipend_salary TEXT NOT NULL,
-      experience TEXT,
-      description TEXT,
-      requirements TEXT,
-      skills TEXT,
-      assignment_text TEXT,
-      employer_phone TEXT,
-      status TEXT DEFAULT 'approved',
-      created_at INTEGER
-    );
+  try {
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        company_logo TEXT,
+        city TEXT NOT NULL,
+        work_mode TEXT NOT NULL,
+        job_type TEXT NOT NULL,
+        stipend_salary TEXT NOT NULL,
+        experience TEXT,
+        description TEXT,
+        requirements TEXT,
+        skills TEXT,
+        assignment_text TEXT,
+        employer_phone TEXT,
+        status TEXT DEFAULT 'approved',
+        created_at INTEGER
+      )
+    `).run();
 
-    CREATE TABLE IF NOT EXISTS job_applications (
-      id TEXT PRIMARY KEY,
-      job_id TEXT NOT NULL,
-      job_title TEXT NOT NULL,
-      company TEXT NOT NULL,
-      candidate_name TEXT NOT NULL,
-      candidate_phone TEXT NOT NULL,
-      candidate_email TEXT,
-      resume_url TEXT NOT NULL,
-      portfolio_url TEXT,
-      experience TEXT,
-      cover_note TEXT,
-      status TEXT DEFAULT 'applied',
-      assignment_text TEXT,
-      assignment_submission TEXT,
-      created_at INTEGER
-    );
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS job_applications (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        job_title TEXT NOT NULL,
+        company TEXT NOT NULL,
+        candidate_name TEXT NOT NULL,
+        candidate_phone TEXT NOT NULL,
+        candidate_email TEXT,
+        resume_url TEXT NOT NULL,
+        portfolio_url TEXT,
+        experience TEXT,
+        cover_note TEXT,
+        status TEXT DEFAULT 'applied',
+        assignment_text TEXT,
+        assignment_submission TEXT,
+        created_at INTEGER
+      )
+    `).run();
 
-    CREATE TABLE IF NOT EXISTS chat_messages (
-      id TEXT PRIMARY KEY,
-      application_id TEXT NOT NULL,
-      sender_type TEXT NOT NULL,
-      sender_name TEXT NOT NULL,
-      message TEXT NOT NULL,
-      created_at INTEGER
-    );
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        application_id TEXT NOT NULL,
+        sender_type TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at INTEGER
+      )
+    `).run();
 
-    CREATE TABLE IF NOT EXISTS otp_codes (
-      phone TEXT PRIMARY KEY,
-      code TEXT NOT NULL,
-      expires_at INTEGER NOT NULL
-    );
-  `);
+    await db.prepare(`
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        phone TEXT PRIMARY KEY,
+        code TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      )
+    `).run();
+  } catch (err) {
+    console.error('ensureJobTables DDL error:', err);
+  }
 
   // Check if jobs table is empty; if so, seed predefined roles for Alifeo, Zifeeo, Aabeeo
   const countRes = await db.prepare('SELECT COUNT(*) as cnt FROM jobs').first<{ cnt: number }>();
