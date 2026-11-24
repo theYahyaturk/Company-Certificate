@@ -463,6 +463,15 @@ export const JOB_PORTAL_STYLES = `
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   }
 
+  /* Clean Leaflet App UI: Hide watermarks, wordmarks, and attribution boxes */
+  .leaflet-control-attribution {
+    display: none !important;
+  }
+  .leaflet-container {
+    font-family: inherit;
+    outline: none !important;
+  }
+
   /* Custom Leaflet Marker Icon */
   .company-marker-pin {
     background: #ffffff;

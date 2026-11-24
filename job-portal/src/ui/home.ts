@@ -643,15 +643,15 @@ export function renderJobPortalPage(
 
       MAP_INSTANCE = L.map('hiringMap', {
         center: [USER_COORDS.lat, USER_COORDS.lng],
-        zoom: 11,
-        zoomControl: true
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: false
       });
 
-      // OpenStreetMap Tiles (Clean CartoDB Positron / OSM)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19
+      // Free OpenStreetMap Standard Tiles (No API key, full street view, high detail, no watermarks)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        subdomains: ['a', 'b', 'c']
       }).addTo(MAP_INSTANCE);
 
       MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
