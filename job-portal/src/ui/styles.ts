@@ -92,14 +92,73 @@ export const JOB_PORTAL_STYLES = `
     letter-spacing: -0.5px;
   }
 
-  .nav-tagline {
-    font-size: 11px;
-    background: rgba(255, 255, 255, 0.18);
-    padding: 2px 8px;
+  /* Header Location Pill (Zomato-style tap to change) */
+  .header-location-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     border-radius: 100px;
-    font-weight: 600;
-    margin-left: 4px;
-    color: #e2e8f0;
+    padding: 6px 12px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .header-location-pill:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .header-location-pill .pin-icon {
+    color: #6ee7b7;
+  }
+
+  /* Header User Avatar & Greeting */
+  .header-user-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-greeting {
+    font-size: 13px;
+    color: #ffffff;
+    font-weight: 500;
+  }
+  .header-greeting strong {
+    font-weight: 800;
+    color: #a7f3d0;
+  }
+  .header-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid #a7f3d0;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #064e3b;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    transition: transform 0.15s ease;
+  }
+  .header-avatar:hover {
+    transform: scale(1.08);
+  }
+  .header-avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .header-avatar-initials {
+    font-weight: 800;
+    font-size: 14px;
+    color: #ffffff;
+  }
+
+  .nav-tagline {
+    display: none;
   }
 
   .nav-actions {
@@ -524,6 +583,157 @@ export const JOB_PORTAL_STYLES = `
     border-radius: 10px;
     border: 1.5px solid #ffffff;
     line-height: 1;
+  }
+
+  /* Candidate Pulsating User GPS Location Pin */
+  .user-gps-container {
+    background: transparent;
+    border: none;
+  }
+  .user-gps-marker {
+    width: 20px;
+    height: 20px;
+    background: #2563eb;
+    border: 3px solid #ffffff;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 10px rgba(37, 99, 235, 0.7);
+  }
+  .user-gps-pulse {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2.5px solid #3b82f6;
+    animation: gpsPulse 2s infinite ease-out;
+  }
+  @keyframes gpsPulse {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  /* Horizontal Category Scroll Bar */
+  .category-scroll-bar {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 0 6px 0;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .category-scroll-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .category-chip {
+    white-space: nowrap;
+    padding: 7px 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .category-chip:hover {
+    border-color: #19563e;
+    color: #19563e;
+  }
+  .category-chip.active {
+    background: #19563e;
+    border-color: #19563e;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(25, 86, 62, 0.3);
+  }
+
+  /* Quick Resume Action Card */
+  .quick-resume-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+    border: 1.5px dashed #10b981;
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
+  }
+  .quick-resume-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .quick-resume-text strong {
+    font-size: 13px;
+    color: #065f46;
+    display: block;
+  }
+  .quick-resume-text span {
+    font-size: 11px;
+    color: #047857;
+  }
+
+  /* Profile Photo Upload Circle */
+  .profile-photo-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .profile-photo-circle {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    border: 3px solid #19563e;
+    background: #f1f5f9;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    transition: all 0.2s ease;
+  }
+  .profile-photo-circle:hover {
+    transform: scale(1.05);
+    border-color: #059669;
+  }
+  .profile-photo-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .profile-photo-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* Company Logo Upload Box */
+  .company-logo-preview {
+    width: 54px;
+    height: 54px;
+    border-radius: 10px;
+    border: 2px dashed #19563e;
+    background: #ecfdf5;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .company-logo-preview:hover {
+    background: #d1fae5;
   }
 
   /* Bottom Sheet Preview (Mobile) / Side Panel (Desktop) */

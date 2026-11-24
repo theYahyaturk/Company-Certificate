@@ -38,28 +38,32 @@ export function renderJobPortalPage(
 <body>
   <div class="top-brand-bar"></div>
 
-  <!-- Header Navbar -->
+  <!-- Header Navbar (Clean Mobile-First Senior UI) -->
   <header class="navbar">
     <div class="nav-brand">
       <a href="/" class="nav-logo-box">
         <img src="${ALIFEO_LOGO_BASE64}" alt="Alifeo" class="nav-logo">
-        <span class="nav-brand-title">Alifeo Jobs</span>
+        <span class="nav-brand-title">Alifeo</span>
       </a>
-      <span class="nav-tagline">${isEmployer ? 'Recruiter Mode' : 'Candidate Mode'}</span>
+
+      <!-- Location Selector Pill (Zomato-style tap to locate) -->
+      <div class="header-location-pill" onclick="requestGPSLocation()" title="Detect or Change Location">
+        <svg class="pin-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="headerCityText">Moradabad Hub</span>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
     </div>
 
     <div class="nav-actions">
       ${session ? `
-        <!-- Role Switcher Pill -->
-        <div class="role-toggle-pill">
-          <button class="role-btn ${!isEmployer ? 'active' : ''}" onclick="switchRole('job_seeker')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Job Seeker
-          </button>
-          <button class="role-btn ${isEmployer ? 'active' : ''}" onclick="switchRole('employer')">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            Employer
-          </button>
+        <!-- Profile Greeting & Photo -->
+        <div class="header-user-wrap">
+          <div class="header-greeting" onclick="openProfileModal()" style="cursor: pointer;" title="Edit Profile">
+            Hey, <strong>${escapeHtml((userProfile?.name || session.name || 'Candidate').split(' ')[0])}</strong>
+          </div>
+          <div class="header-avatar" onclick="openProfileModal()" title="Profile & Preferences">
+            ${userProfile?.photo_url ? `<img src="${userProfile.photo_url}" class="header-avatar-img">` : `<div class="header-avatar-initials">${escapeHtml((userProfile?.name || session.name || 'U').charAt(0).toUpperCase())}</div>`}
+          </div>
         </div>
 
         ${isEmployer ? `
@@ -68,15 +72,10 @@ export function renderJobPortalPage(
             Post Job
           </button>
         ` : `
-          <button class="btn btn-sm btn-outline-white" onclick="openResumeModal()">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            ${currentResume ? 'My Resume' : 'Upload Resume'}
+          <button class="btn btn-sm btn-accent" onclick="openLoginModal('employer')">
+            Hire Someone
           </button>
         `}
-
-        <button class="btn btn-sm btn-outline-white" onclick="handleLogout()" title="Sign Out">
-          Sign Out
-        </button>
       ` : `
         <button class="btn btn-sm btn-outline-white" onclick="openLoginModal('job_seeker')">Sign In</button>
         <button class="btn btn-sm btn-accent" onclick="openLoginModal('employer')">Hire Someone</button>
@@ -302,18 +301,32 @@ export function renderJobPortalPage(
   <div class="modal-overlay" id="profileModal">
     <div class="modal-content" style="max-width: 580px;">
       <div class="modal-header">
-        <div class="modal-title">Career Preferences & Profile</div>
+        <div class="modal-title">My Profile & Preferences</div>
         <button class="modal-close-btn" onclick="closeModal('profileModal')">&times;</button>
       </div>
       <div class="modal-body">
         <form id="seekerProfileForm" onsubmit="handleSaveSeekerProfile(event)">
+          <!-- Profile Photo Upload Circle -->
+          <div class="profile-photo-container">
+            <div class="profile-photo-circle" onclick="document.getElementById('spPhotoInput').click()" title="Click to change profile picture">
+              <img id="spPhotoPreview" src="${escapeHtml(userProfile?.photo_url || '')}" style="${userProfile?.photo_url ? '' : 'display: none;'}" class="profile-photo-img">
+              <div id="spPhotoPlaceholder" style="${userProfile?.photo_url ? 'display: none;' : ''}" class="profile-photo-placeholder">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#19563e" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                <span>Upload Pic</span>
+              </div>
+            </div>
+            <input type="file" id="spPhotoInput" accept="image/*" style="display: none;" onchange="handleProfilePhotoUpload(event)">
+            <input type="hidden" id="spPhotoUrl" value="${escapeHtml(userProfile?.photo_url || '')}">
+            <div style="font-size: 11px; color: #64748b; margin-top: 6px; font-weight: 600;">Tap avatar to upload your profile photo</div>
+          </div>
+
           <div class="form-group">
             <label class="form-label" for="spName">Full Name</label>
-            <input type="text" id="spName" class="form-control" value="${escapeHtml(userProfile?.name || session?.name || '')}" required>
+            <input type="text" id="spName" class="form-control" value="${escapeHtml(userProfile?.name || session?.name || '')}" placeholder="e.g. Mohd Khalid" required>
           </div>
           <div class="form-group">
             <label class="form-label" for="spEmail">Email Address</label>
-            <input type="email" id="spEmail" class="form-control" value="${escapeHtml(userProfile?.email || session?.email || '')}">
+            <input type="email" id="spEmail" class="form-control" value="${escapeHtml(userProfile?.email || session?.email || '')}" placeholder="e.g. khalid@example.com">
           </div>
           <div class="form-group">
             <label class="form-label" for="spHeadline">Professional Headline</label>
@@ -367,6 +380,23 @@ export function renderJobPortalPage(
         </div>
 
         <form id="postJobForm" onsubmit="event.preventDefault();">
+          <!-- Company Logo Upload for Map Marker Pin -->
+          <div class="form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;">
+            <label class="form-label" style="margin-bottom: 6px;">Company Brand Logo <span>(Appears directly on Live Hiring Map!)</span></label>
+            <div style="display: flex; gap: 14px; align-items: center;">
+              <div class="company-logo-preview" id="pjLogoPreviewBox" onclick="document.getElementById('pjLogoInput').click()" title="Click to upload company logo">
+                <img id="pjLogoImg" style="display: none; width: 50px; height: 50px; border-radius: 8px; object-fit: cover;">
+                <div id="pjLogoPlaceholder" style="font-size: 11px; color: #19563e; font-weight: 800; text-align: center;">+ Logo</div>
+              </div>
+              <input type="file" id="pjLogoInput" accept="image/*" style="display: none;" onchange="handleJobLogoUpload(event)">
+              <input type="hidden" id="pjLogoUrl" value="${escapeHtml(userProfile?.company_logo || '')}">
+              <div>
+                <div style="font-weight: 700; font-size: 13px; color: #19563e;">Upload Company Logo</div>
+                <div style="font-size: 11px; color: #64748b;">Job seekers will see your brand pin immediately on the map</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Step 1: Role Overview -->
           <div class="form-group">
             <label class="form-label" for="pjTitle">Job Title</label>
@@ -604,36 +634,85 @@ export function renderJobPortalPage(
     let USER_COORDS = { lat: 28.8386, lng: 78.7733 }; // default Moradabad
     let CURRENT_RADIUS_KM = 30; // default 30km
     let ACTIVE_VIEW_MODE = 'map'; // 'map' or 'list'
+    let CURRENT_WORK_MODE = 'all'; // 'all', 'onsite', 'remote'
+    let SELECTED_CATEGORY = '';
     let ACTIVE_CHAT_APP_ID = null;
     let CURRENT_AUTH_ROLE = 'job_seeker';
     let SELECTED_JOB_FOR_APPLY = null;
+    let USER_LOCATION_MARKER = null;
 
     window.addEventListener('DOMContentLoaded', () => {
       initHiringMap();
       loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+      autoDetectGPS();
+      if (sessionStorage.getItem('open_profile_setup')) {
+        sessionStorage.removeItem('open_profile_setup');
+        setTimeout(() => openProfileModal(), 400);
+      }
     });
 
     function openModal(id) { document.getElementById(id)?.classList.add('active'); }
     function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+
+    function updateLocationName(name) {
+      const headerCity = document.getElementById('headerCityText');
+      const bannerCity = document.getElementById('currentLocationText');
+      if (headerCity) headerCity.innerText = name;
+      if (bannerCity) bannerCity.innerText = name;
+    }
 
     // Toggle Map vs List Mode with synchronized state
     function switchViewMode(mode) {
       ACTIVE_VIEW_MODE = mode;
       const mapCard = document.getElementById('mapWrapperCard');
       const listContainer = document.getElementById('jobListContainer');
-      const btnMap = document.getElementById('btnModeMap');
+      const btnOnsite = document.getElementById('btnModeOnsite');
       const btnList = document.getElementById('btnModeList');
 
       if (mode === 'map') {
         if (mapCard) mapCard.style.display = 'block';
-        if (btnMap) btnMap.classList.add('active');
+        if (btnOnsite) btnOnsite.classList.add('active');
         if (btnList) btnList.classList.remove('active');
         if (MAP_INSTANCE) setTimeout(() => MAP_INSTANCE.invalidateSize(), 150);
       } else {
         if (mapCard) mapCard.style.display = 'none';
-        if (btnMap) btnMap.classList.remove('active');
+        if (btnOnsite) btnOnsite.classList.remove('active');
         if (btnList) btnList.classList.add('active');
       }
+    }
+
+    // Work Mode Filter (On-site & Nearby vs Remote Only)
+    function setWorkModeFilter(mode) {
+      CURRENT_WORK_MODE = mode;
+      const btnOnsite = document.getElementById('btnModeOnsite');
+      const btnRemote = document.getElementById('btnModeRemote');
+      const btnList = document.getElementById('btnModeList');
+      const mapCard = document.getElementById('mapWrapperCard');
+      const radiusRow = document.getElementById('radiusSelectorRow');
+
+      if (btnOnsite) btnOnsite.classList.toggle('active', mode === 'onsite');
+      if (btnRemote) btnRemote.classList.toggle('active', mode === 'remote');
+      if (btnList) btnList.classList.toggle('active', mode === 'list');
+
+      if (mode === 'remote') {
+        if (mapCard) mapCard.style.display = 'none';
+        if (radiusRow) radiusRow.style.display = 'none';
+      } else {
+        if (mapCard) {
+          mapCard.style.display = 'block';
+          if (MAP_INSTANCE) setTimeout(() => MAP_INSTANCE.invalidateSize(), 150);
+        }
+        if (radiusRow) radiusRow.style.display = 'flex';
+      }
+      loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+    }
+
+    // Category Filter Chip Selection
+    function selectCategoryChip(btn, cat) {
+      SELECTED_CATEGORY = cat;
+      document.querySelectorAll('.category-chip').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
     }
 
     // Initialize Leaflet Map
@@ -656,6 +735,22 @@ export function renderJobPortalPage(
 
       MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
       drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+      drawUserLocationPin(USER_COORDS.lat, USER_COORDS.lng);
+    }
+
+    // Pulsating "You Are Here" Marker on Map
+    function drawUserLocationPin(lat, lng) {
+      if (!MAP_INSTANCE) return;
+      if (USER_LOCATION_MARKER) MAP_INSTANCE.removeLayer(USER_LOCATION_MARKER);
+      const userIcon = L.divIcon({
+        className: 'user-gps-container',
+        html: '<div class="user-gps-marker"><div class="user-gps-pulse"></div></div>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+      USER_LOCATION_MARKER = L.marker([lat, lng], { icon: userIcon, zIndexOffset: 1000 })
+        .bindPopup('<b style="color: #2563eb;">📍 You are here</b><br><span style="font-size: 11px;">Searching nearby verified employers</span>')
+        .addTo(MAP_INSTANCE);
     }
 
     function drawRadiusCircle(lat, lng, radiusKm) {
@@ -672,6 +767,26 @@ export function renderJobPortalPage(
       }).addTo(MAP_INSTANCE);
     }
 
+    // Auto-detect GPS on First View smoothly
+    function autoDetectGPS() {
+      if (!navigator.geolocation || sessionStorage.getItem('gps_checked')) return;
+      sessionStorage.setItem('gps_checked', '1');
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          USER_COORDS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          updateLocationName('Near You (GPS)');
+          if (MAP_INSTANCE) {
+            MAP_INSTANCE.flyTo([USER_COORDS.lat, USER_COORDS.lng], 12);
+            drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+            drawUserLocationPin(USER_COORDS.lat, USER_COORDS.lng);
+            loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+
     // Request Device GPS Location
     function requestGPSLocation() {
       if (!navigator.geolocation) {
@@ -685,15 +800,16 @@ export function renderJobPortalPage(
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           USER_COORDS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-          document.getElementById('currentLocationText').innerText = 'Near Your Current GPS Location';
+          updateLocationName('Near You (GPS)');
           if (MAP_INSTANCE) {
             MAP_INSTANCE.flyTo([USER_COORDS.lat, USER_COORDS.lng], 12);
           }
           drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+          drawUserLocationPin(USER_COORDS.lat, USER_COORDS.lng);
           loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
         },
         (err) => {
-          alert('GPS permission not granted or unavailable. You can search by city or pincode below.');
+          alert('GPS permission not granted or unavailable. You can select a city from the list below.');
         },
         { enableHighAccuracy: true, timeout: 10000 }
       );
@@ -705,6 +821,8 @@ export function renderJobPortalPage(
       document.querySelectorAll('.radius-pill').forEach(el => {
         el.classList.toggle('active', parseInt(el.dataset.radius) === radiusKm);
       });
+      const badge = document.getElementById('currentRadiusDisplay');
+      if (badge) badge.innerText = radiusKm + ' km';
       drawRadiusCircle(USER_COORDS.lat, USER_COORDS.lng, radiusKm);
       loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, radiusKm);
     }
@@ -713,16 +831,17 @@ export function renderJobPortalPage(
     async function loadMapJobs(lat, lng, radiusKm) {
       try {
         const query = document.getElementById('feedSearchQuery')?.value.trim() || '';
-        const mode = document.getElementById('feedFilterMode')?.value || 'all';
+        const mode = CURRENT_WORK_MODE || 'all';
 
-        const res = await fetch(\`/api/jobs/map?lat=\${lat}&lng=\${lng}&radius=\${radiusKm}&mode=\${mode}&q=\${encodeURIComponent(query)}\`);
+        const res = await fetch(\`/api/jobs/map?lat=\${lat}&lng=\${lng}&radius=\${radiusKm}&mode=\${mode}&category=\${encodeURIComponent(SELECTED_CATEGORY)}&q=\${encodeURIComponent(query)}\`);
         const data = await res.json();
 
         if (data.success) {
           ALL_JOBS = data.jobs || [];
           renderMapMarkers(data.companies || []);
           renderFeedList(ALL_JOBS);
-          document.getElementById('liveJobsCountBadge').innerText = \`\${data.total_jobs} Openings (\${data.companies_count} Workplaces)\`;
+          const badge = document.getElementById('liveJobsCountBadge');
+          if (badge) badge.innerText = \`\${data.total_jobs} Openings (\${data.companies_count} Workplaces)\`;
         }
       } catch (e) {
         console.error('Error loading map jobs:', e);
@@ -777,13 +896,18 @@ export function renderJobPortalPage(
 
       headerTitle.innerText = comp.company_name;
       body.innerHTML = \`
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <div style="font-size: 14px; font-weight: 800; color: #0f172a;">\${escapeHtml(comp.workplace_name)}</div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            \${comp.company_logo ? \`<img src="\${comp.company_logo}" style="width: 42px; height: 42px; border-radius: 8px; object-fit: cover; border: 1px solid #e2e8f0;">\` : \`<div style="width: 42px; height: 42px; border-radius: 8px; background: #19563e; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px;">\${escapeHtml(comp.company_name.substring(0, 2).toUpperCase())}</div>\`}
+            <div>
+              <div style="font-size: 14px; font-weight: 800; color: #0f172a;">\${escapeHtml(comp.workplace_name)}</div>
+              <div style="font-size: 11px; color: #64748b;">\${escapeHtml(comp.workplace_address)} &bull; \${escapeHtml(comp.workplace_type)}</div>
+            </div>
+          </div>
           <span class="distance-badge">\${comp.distance_km} km away</span>
         </div>
-        <div style="font-size: 12px; color: #64748b;">\${escapeHtml(comp.workplace_address)} &bull; \${escapeHtml(comp.workplace_type)}</div>
 
-        <div style="font-size: 12px; font-weight: 700; color: #19563e; margin-top: 6px;">
+        <div style="font-size: 12px; font-weight: 700; color: #19563e; margin: 10px 0 6px 0;">
           \${comp.openings_count} Active Opening\${comp.openings_count > 1 ? 's' : ''}:
         </div>
 
@@ -850,12 +974,89 @@ export function renderJobPortalPage(
     // Quick City Selection
     function selectQuickCity(cityName, lat, lng) {
       USER_COORDS = { lat, lng };
-      document.getElementById('currentLocationText').innerText = cityName;
+      updateLocationName(cityName);
       if (MAP_INSTANCE) {
-        MAP_INSTANCE.flyTo([lat, lng], 11);
+        MAP_INSTANCE.flyTo([lat, lng], 12);
+        drawRadiusCircle(lat, lng, CURRENT_RADIUS_KM);
+        drawUserLocationPin(lat, lng);
+        loadMapJobs(lat, lng, CURRENT_RADIUS_KM);
       }
-      drawRadiusCircle(lat, lng, CURRENT_RADIUS_KM);
-      loadMapJobs(lat, lng, CURRENT_RADIUS_KM);
+    }
+
+    // Profile Photo Upload Handler
+    function handleProfilePhotoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG, WebP)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const b64 = e.target.result;
+        const preview = document.getElementById('spPhotoPreview');
+        const placeholder = document.getElementById('spPhotoPlaceholder');
+        const urlInput = document.getElementById('spPhotoUrl');
+        if (preview) { preview.src = b64; preview.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        if (urlInput) urlInput.value = b64;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Company Logo Upload Handler (Map marker)
+    function handleJobLogoUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file (PNG, JPG)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const b64 = e.target.result;
+        const preview = document.getElementById('pjLogoImg');
+        const placeholder = document.getElementById('pjLogoPlaceholder');
+        const urlInput = document.getElementById('pjLogoUrl');
+        if (preview) { preview.src = b64; preview.style.display = 'block'; }
+        if (placeholder) placeholder.style.display = 'none';
+        if (urlInput) urlInput.value = b64;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // Save Job Seeker Profile (with photo)
+    async function handleSaveSeekerProfile(event) {
+      event.preventDefault();
+      const name = document.getElementById('spName')?.value.trim() || '';
+      const email = document.getElementById('spEmail')?.value.trim() || '';
+      const photo_url = document.getElementById('spPhotoUrl')?.value || '';
+      const headline = document.getElementById('spHeadline')?.value.trim() || '';
+      const skills = document.getElementById('spSkills')?.value.trim() || '';
+      const experience_level = document.getElementById('spExpLevel')?.value || 'Fresher';
+      const work_modes = document.getElementById('spWorkMode')?.value || 'remote,hybrid,onsite';
+      const location = document.getElementById('spLocation')?.value.trim() || '';
+
+      try {
+        const res = await fetch('/api/profile/seeker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, email, photo_url, headline, skills,
+            experience_level, work_modes, location
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert('Profile updated successfully!');
+          closeModal('profileModal');
+          window.location.reload();
+        } else {
+          alert(data.error || 'Failed to save profile');
+        }
+      } catch (e) {
+        alert('Failed to save profile');
+      }
     }
 
     // Employer City Change
@@ -956,6 +1157,9 @@ export function renderJobPortalPage(
         });
         const data = await res.json();
         if (data.success) {
+          if (!name) {
+            sessionStorage.setItem('open_profile_setup', '1');
+          }
           window.location.reload();
         } else {
           alert(data.error || 'Invalid OTP code');
@@ -1129,10 +1333,11 @@ export function renderJobPortalPage(
       }
     }
 
-    // Submit Job with Workplace Location
+    // Submit Job with Workplace Location & Company Logo
     async function submitJobForm(submitForReview) {
       const title = document.getElementById('pjTitle').value.trim();
       const company_name = document.getElementById('pjCompany').value.trim();
+      const company_logo = document.getElementById('pjLogoUrl')?.value || '';
       const category = document.getElementById('pjCategory').value;
       const job_type = document.getElementById('pjType').value;
       const work_mode = document.getElementById('pjMode').value;
@@ -1161,7 +1366,7 @@ export function renderJobPortalPage(
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            title, company_name, category, job_type, work_mode, city,
+            title, company_name, company_logo, category, job_type, work_mode, city,
             salary_display, required_skills, description, openings,
             workplace_name, workplace_type, workplace_address, state, pincode,
             latitude, longitude,
@@ -1404,12 +1609,16 @@ function renderSeekerSection(
   `).join('');
 
   return `
-    <!-- View Switcher & GPS Location Header -->
+    <!-- Mode Switcher (On-site & Nearby vs Remote Only) -->
     <div class="view-switcher-bar">
       <div class="mode-toggle-group">
-        <button id="btnModeMap" class="mode-toggle-btn active" onclick="switchViewMode('map')">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-          Live Map View
+        <button id="btnModeOnsite" class="mode-toggle-btn active" onclick="setWorkModeFilter('onsite')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          On-site & Nearby Map
+        </button>
+        <button id="btnModeRemote" class="mode-toggle-btn" onclick="setWorkModeFilter('remote')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          Remote Only
         </button>
         <button id="btnModeList" class="mode-toggle-btn" onclick="switchViewMode('list')">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -1418,36 +1627,40 @@ function renderSeekerSection(
       </div>
 
       <div style="display: flex; align-items: center; gap: 8px;">
-        <button class="btn btn-sm btn-outline" onclick="requestGPSLocation()">
+        <button class="btn btn-sm btn-outline" onclick="requestGPSLocation()" title="Detect my current location">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#19563e" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
-          Use My GPS
+          Detect GPS
         </button>
       </div>
     </div>
 
-    <!-- Search Hero with Radius Slider -->
+    <!-- Search Hero with Horizontal Category Chips -->
     <div class="search-hero-card">
       <div class="search-input-row">
         <div class="search-field">
           <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="feedSearchQuery" placeholder="Search by job title, factory, shop, or skill..." oninput="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">
         </div>
-        <div class="search-field" style="max-width: 170px;">
-          <select id="feedFilterMode" onchange="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">
-            <option value="all">All Modes</option>
-            <option value="onsite" selected>On-site</option>
-            <option value="hybrid">Hybrid</option>
-            <option value="remote">Remote</option>
-          </select>
-        </div>
         <button class="btn btn-primary" onclick="loadMapJobs(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM)">Find Jobs</button>
       </div>
 
+      <!-- Horizontal Scrolling Category Chips -->
+      <div class="category-scroll-bar">
+        <button class="category-chip active" data-cat="" onclick="selectCategoryChip(this, '')">All Roles</button>
+        <button class="category-chip" data-cat="Engineering" onclick="selectCategoryChip(this, 'Engineering')">💻 Engineering & Tech</button>
+        <button class="category-chip" data-cat="Design" onclick="selectCategoryChip(this, 'Design')">🎨 Design & UI/UX</button>
+        <button class="category-chip" data-cat="Marketing" onclick="selectCategoryChip(this, 'Marketing')">📈 Growth & Marketing</button>
+        <button class="category-chip" data-cat="Operations" onclick="selectCategoryChip(this, 'Operations')">📦 Ops & Logistics</button>
+        <button class="category-chip" data-cat="HR" onclick="selectCategoryChip(this, 'HR')">👥 HR & Recruiting</button>
+        <button class="category-chip" data-cat="Retail" onclick="selectCategoryChip(this, 'Retail')">🏪 Retail & Store</button>
+        <button class="category-chip" data-cat="Manufacturing" onclick="selectCategoryChip(this, 'Manufacturing')">🏭 Factory & Production</button>
+      </div>
+
       <!-- Quick Location & Radius Selector -->
-      <div class="radius-selector-bar">
+      <div class="radius-selector-bar" id="radiusSelectorRow">
         <span class="radius-label">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-          Search Radius:
+          Radius:
         </span>
         <button class="radius-pill" data-radius="20" onclick="changeRadius(20)">20 km</button>
         <button class="radius-pill active" data-radius="30" onclick="changeRadius(30)">30 km</button>
@@ -1482,9 +1695,9 @@ function renderSeekerSection(
       <!-- Location Info Banner -->
       <div class="map-location-banner">
         <div>
-          <strong id="currentLocationText">Moradabad Hub</strong> &bull; Showing workplaces within <span id="currentRadiusDisplay">30 km</span>
+          <strong id="currentLocationText">Moradabad Hub</strong> &bull; Workplaces within <span id="currentRadiusDisplay">30 km</span>
         </div>
-        <div style="font-size: 11px; color: #19563e; font-weight: 700;">Tap any logo marker to preview openings</div>
+        <div style="font-size: 11px; color: #19563e; font-weight: 700;">Tap any logo pin to view openings</div>
       </div>
 
       <!-- Tapped Company Preview Sheet (Mobile Bottom Sheet / Desktop Side Panel) -->
@@ -1497,6 +1710,20 @@ function renderSeekerSection(
           <!-- Dynamically populated -->
         </div>
       </div>
+    </div>
+
+    <!-- Quick Resume Action Card -->
+    <div class="quick-resume-card">
+      <div class="quick-resume-info">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <div class="quick-resume-text">
+          <strong>${currentResume ? 'Current Resume: ' + escapeHtml(currentResume.filename) : 'Upload Your Resume for 1-Click Apply'}</strong>
+          <span>${currentResume ? 'Ready to apply directly to verified employers' : 'Upload PDF/DOC once • Instant recruiter chat & application'}</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="openResumeModal()">
+        ${currentResume ? 'Update Resume' : 'Upload Resume'}
+      </button>
     </div>
 
     <!-- Dual Layout: Nearby Feed & Applications Tracker -->

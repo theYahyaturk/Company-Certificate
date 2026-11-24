@@ -565,14 +565,15 @@ export default {
 
         await env.DB.prepare(`
           INSERT INTO job_seeker_profiles (
-            phone, name, email, headline, location, education, experience_summary, skills,
+            phone, name, email, photo_url, headline, location, education, experience_summary, skills,
             portfolio_url, linkedin_url, preferred_titles, job_category, industry,
             experience_level, years_of_experience, preferred_job_types, salary_expectation,
             preferred_locations, work_modes, notice_period, is_immediate_joiner, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(phone) DO UPDATE SET
             name = excluded.name,
             email = excluded.email,
+            photo_url = excluded.photo_url,
             headline = excluded.headline,
             location = excluded.location,
             education = excluded.education,
@@ -596,6 +597,7 @@ export default {
           session.phone,
           (b.name || session.name || '').trim(),
           (b.email || '').trim(),
+          (b.photo_url || '').trim(),
           (b.headline || '').trim(),
           (b.location || '').trim(),
           (b.education || '').trim(),
@@ -829,6 +831,7 @@ export default {
 
         const title = (b.title || '').trim();
         const companyName = (b.company_name || session.company_name || 'Alifeo Partner').trim();
+        const companyLogo = (b.company_logo || session.company_logo || '').trim();
         const description = (b.description || '').trim();
         const category = (b.category || 'Engineering').trim();
         const department = (b.department || '').trim();
@@ -870,16 +873,16 @@ export default {
 
         await env.DB.prepare(`
           INSERT INTO jobs (
-            id, employer_phone, company_name, company, title, department, category,
+            id, employer_phone, company_name, company, company_logo, title, department, category,
             description, responsibilities, qualifications, required_skills, skills,
             experience_level, salary_display, stipend_salary, job_type,
             work_mode, city, openings, deadline, screening_questions_json,
             workplace_name, workplace_address, state, pincode, workplace_type,
             latitude, longitude, is_hiring_active,
             status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)
         `).bind(
-          id, session.phone, companyName, companyName, title, department, category,
+          id, session.phone, companyName, companyName, companyLogo, title, department, category,
           description, responsibilities, qualifications, requiredSkills, requiredSkills,
           experienceLevel, salaryDisplay, salaryDisplay, jobType,
           workMode, city, openings, deadline, screeningQuestionsJson,
@@ -1368,6 +1371,14 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       // Column already exists, safe to ignore
     }
   }
+
+  // Profile migrations
+  try {
+    await db.prepare('ALTER TABLE job_seeker_profiles ADD COLUMN photo_url TEXT').run();
+  } catch (e) {}
+  try {
+    await db.prepare('ALTER TABLE employer_profiles ADD COLUMN company_logo TEXT').run();
+  } catch (e) {}
 
   // Sync existing legacy columns
   try {
