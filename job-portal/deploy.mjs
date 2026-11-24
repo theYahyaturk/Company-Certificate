@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 let DOMAIN = 'alifeo.com';
 let SUBDOMAIN = 'job.alifeo.com';
@@ -21,8 +24,12 @@ let whatsappLang = process.env.WHATSAPP_TEMPLATE_LANGUAGE_CODE || 'en_US';
 let whatsappVerify = process.env.WHATSAPP_VERIFY_TOKEN || 'alifeo_whatsapp_verify';
 let ablyApiKey = process.env.ABLY_API_KEY || '';
 
-// Load from parent or local .env
-const envPaths = ['.env', '../.env'];
+// Load from local or parent .env
+const envPaths = [
+  path.join(__dirname, '.env'),
+  path.join(__dirname, '..', '.env')
+];
+
 for (const envPath of envPaths) {
   if (fs.existsSync(envPath)) {
     const envContent = fs.readFileSync(envPath, 'utf8');
@@ -70,12 +77,13 @@ async function main() {
   console.log('   Alifeo Job Portal - Automated Cloudflare Deploy');
   console.log('======================================================\n');
 
-  if (!fs.existsSync('dist/index.js')) {
-    error('dist/index.js not found. Please run npm run build first.');
+  const distFile = path.join(__dirname, 'dist', 'index.js');
+  if (!fs.existsSync(distFile)) {
+    error(`dist/index.js not found at ${distFile}. Please run build first.`);
     process.exit(1);
   }
 
-  const code = fs.readFileSync('dist/index.js', 'utf8');
+  const code = fs.readFileSync(distFile, 'utf8');
 
   // Step 1: Prepare metadata and bindings
   log('Preparing Cloudflare Worker bindings for job.alifeo.com...');
@@ -110,7 +118,7 @@ async function main() {
   formData.append('index.js', new Blob([code], { type: 'application/javascript+module' }), 'index.js');
 
   // Step 2: Upload script to Cloudflare
-  log(`Uploading worker "${WORKER_NAME}" to Cloudflare...`);
+  log(`Uploading worker "${WORKER_NAME}" (${(code.length / 1024).toFixed(1)} KB) to Cloudflare...`);
   const uploadRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/workers/scripts/${WORKER_NAME}`, {
     method: 'PUT',
     headers: { 'Authorization': `Bearer ${apiToken}` },
@@ -142,6 +150,12 @@ async function main() {
     } else {
       warn(`Custom domain notice: ${domainRes.errors?.[0]?.message || 'Configured'}`);
     }
+
+    // Also ensure route pattern exists
+    await cfApi(`/zones/${ZONE_ID}/workers/routes`, 'POST', {
+      pattern: `${SUBDOMAIN}/*`,
+      script: WORKER_NAME
+    });
   }
 
   console.log('\n======================================================');

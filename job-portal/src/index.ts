@@ -1112,7 +1112,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS job_seeker_profiles (
@@ -1142,7 +1142,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS resumes (
@@ -1155,7 +1155,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       is_current INTEGER DEFAULT 1,
       uploaded_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS employer_profiles (
@@ -1174,7 +1174,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS jobs (
@@ -1215,7 +1215,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS job_applications (
@@ -1235,7 +1235,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS application_status_history (
@@ -1248,7 +1248,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       notes TEXT,
       created_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS interviews (
@@ -1267,7 +1267,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       created_at INTEGER,
       updated_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS chat_messages (
@@ -1281,7 +1281,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       is_read INTEGER DEFAULT 0,
       created_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS reports (
@@ -1296,7 +1296,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       admin_notes TEXT,
       created_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS admin_audit_logs (
@@ -1310,7 +1310,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       new_status TEXT,
       created_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS notifications (
@@ -1322,7 +1322,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       is_read INTEGER DEFAULT 0,
       created_at INTEGER
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   await db.prepare(`
     CREATE TABLE IF NOT EXISTS otp_codes (
@@ -1330,7 +1330,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
       code TEXT NOT NULL,
       expires_at INTEGER NOT NULL
     )
-  `).run().catch(() => {});
+  `).run().catch(() => { });
 
   // 2. Safe Schema Migrations (ALTER TABLE ADD COLUMN) to prevent SQLite missing column errors
   const jobColumnsToAdd = [
@@ -1375,10 +1375,10 @@ async function ensureJobTables(db: D1Database): Promise<void> {
   // Profile migrations
   try {
     await db.prepare('ALTER TABLE job_seeker_profiles ADD COLUMN photo_url TEXT').run();
-  } catch (e) {}
+  } catch (e) { }
   try {
     await db.prepare('ALTER TABLE employer_profiles ADD COLUMN company_logo TEXT').run();
-  } catch (e) {}
+  } catch (e) { }
 
   // Sync existing legacy columns
   try {
@@ -1386,7 +1386,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
     await db.prepare("UPDATE jobs SET salary_display = stipend_salary WHERE salary_display IS NULL AND stipend_salary IS NOT NULL").run();
     await db.prepare("UPDATE jobs SET required_skills = skills WHERE required_skills IS NULL AND skills IS NOT NULL").run();
     await db.prepare("UPDATE jobs SET experience_level = experience WHERE experience_level IS NULL AND experience IS NOT NULL").run();
-  } catch (e) {}
+  } catch (e) { }
 
   // 3. Populate default workplace coordinates for existing jobs so they appear on the Live Map!
   try {
@@ -1433,5 +1433,5 @@ async function ensureJobTables(db: D1Database): Promise<void> {
         is_hiring_active = 1
       WHERE (LOWER(city) LIKE '%gurgaon%' OR LOWER(city) LIKE '%gurugram%') AND (latitude IS NULL OR longitude IS NULL)
     `).run();
-  } catch (e) {}
+  } catch (e) { }
 }
