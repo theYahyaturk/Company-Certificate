@@ -1672,6 +1672,7 @@ export function renderJobPortalPage(
 
     // Messages & Inbox System
     let ACTIVE_CONVERSATION_ID = null;
+    let INBOX_CONVERSATIONS_DATA = [];
 
     async function loadInboxConversations() {
       const container = document.getElementById('inboxConversationList');
@@ -1680,8 +1681,9 @@ export function renderJobPortalPage(
         const res = await fetch('/api/chat/conversations');
         const data = await res.json();
         if (data.success && data.conversations && data.conversations.length > 0) {
-          container.innerHTML = data.conversations.map(c => (
-            '<div class="convo-item ' + (c.id === ACTIVE_CONVERSATION_ID ? 'active' : '') + '" onclick="openInboxConversation(\'' + c.id + '\', \'' + escapeHtml(c.other_name) + '\', \'' + (c.other_phone || '') + '\', \'' + escapeHtml(c.job_title) + '\')">' +
+          INBOX_CONVERSATIONS_DATA = data.conversations;
+          container.innerHTML = data.conversations.map((c, idx) => (
+            '<div class="convo-item ' + (c.id === ACTIVE_CONVERSATION_ID ? 'active' : '') + '" onclick="selectInboxConversationIndex(' + idx + ')">' +
               '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">' +
                 '<div style="font-size: 13px; font-weight: 800; color: #17231D;">' + escapeHtml(c.other_name) + '</div>' +
                 '<div style="font-size: 10px; color: #78827D;">' + (c.last_time ? new Date(c.last_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
@@ -1691,8 +1693,7 @@ export function renderJobPortalPage(
             '</div>'
           )).join('');
           if (!ACTIVE_CONVERSATION_ID && data.conversations[0]) {
-            const first = data.conversations[0];
-            openInboxConversation(first.id, first.other_name, first.other_phone, first.job_title);
+            selectInboxConversationIndex(0);
           }
         } else {
           container.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: #78827D; font-size: 12px;">No active conversations yet. Submit an application or chat with an employer to start!</div>';
@@ -1700,6 +1701,12 @@ export function renderJobPortalPage(
       } catch (e) {
         container.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Failed to load conversations.</div>';
       }
+    }
+
+    function selectInboxConversationIndex(idx) {
+      const c = INBOX_CONVERSATIONS_DATA[idx];
+      if (!c) return;
+      openInboxConversation(c.id, c.other_name, c.other_phone, c.job_title);
     }
 
     async function openInboxConversation(convoId, otherName, otherPhone, jobTitle) {
@@ -1831,6 +1838,9 @@ export function renderJobPortalPage(
       MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
       drawUserPin(USER_COORDS.lat, USER_COORDS.lng);
       drawCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+      setTimeout(() => {
+        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
+      }, 300);
     }
 
     function setMapLayer(type) {
@@ -1963,13 +1973,12 @@ export function renderJobPortalPage(
         const firstJob = comp.jobs && comp.jobs[0];
         if (!firstJob) return;
 
-        const pinHtml = \`
-          <div class="company-teardrop-marker">
-            <div class="company-marker-inner">
-              \${comp.company_logo ? \`<img src="\${comp.company_logo}">\` : '💼'}
-            </div>
-          </div>
-        \`;
+        const pinHtml = 
+          '<div class="company-teardrop-marker">' +
+            '<div class="company-marker-inner">' +
+              (comp.company_logo ? '<img src="' + comp.company_logo + '">' : '💼') +
+            '</div>' +
+          '</div>';
         const pinIcon = L.divIcon({
           className: 'custom-company-pin-wrapper',
           html: pinHtml,
@@ -1979,8 +1988,8 @@ export function renderJobPortalPage(
 
         const marker = L.marker([comp.latitude, comp.longitude], { icon: pinIcon });
         
-        const salaryBadge = firstJob.salary_display ? \`<span class="tooltip-salary">\${escapeHtml(firstJob.salary_display)}</span>\` : '';
-        const tooltipContent = \`\${escapeHtml(firstJob.title)} &bull; \${salaryBadge} &rsaquo;\`;
+        const salaryBadge = firstJob.salary_display ? '<span class="tooltip-salary">' + escapeHtml(firstJob.salary_display) + '</span>' : '';
+        const tooltipContent = escapeHtml(firstJob.title) + ' &bull; ' + salaryBadge + ' &rsaquo;';
         
         marker.bindTooltip(tooltipContent, {
           permanent: true,
@@ -2001,36 +2010,36 @@ export function renderJobPortalPage(
         container.innerHTML = '<div style="background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; text-align: center; color: #78827D; font-size: 12px;">No active openings in this radius. Expand search distance or explore Remote Jobs.</div>';
         return;
       }
-      container.innerHTML = jobsList.map(j => \`
-        <div class="alifeo-job-card" onclick="openJobDetailModal('\${j.id}')">
-          <div class="job-card-top">
-            <div class="company-avatar-box">
-              \${j.company_logo ? \`<img src="\${j.company_logo}">\` : \`<div class="company-avatar-initials">\${escapeHtml((j.company_name || 'Alifeo').substring(0, 2).toUpperCase())}</div>\`}
-            </div>
-            <div class="job-meta-col">
-              <div class="company-name-row">
-                <span>\${escapeHtml(j.company_name || 'Alifeo Partner')}</span>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15965B" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-              </div>
-              <div class="job-title-text">\${escapeHtml(j.title)}</div>
-              <div class="job-sub-row">
-                <span>📍 <strong>\${j.distance_km !== undefined ? j.distance_km + ' km' : j.city}</strong></span>
-                <span>&bull;</span>
-                <span>\${escapeHtml(j.salary_display || 'Competitive')}</span>
-              </div>
-            </div>
-          </div>
-          <div class="job-card-bottom">
-            <div class="tag-pills-row">
-              <span class="mini-tag-pill mini-tag-green">\${escapeHtml(j.work_mode.toUpperCase())}</span>
-              <span class="mini-tag-pill">\${escapeHtml(j.job_type === 'internship' ? 'Internship' : 'Full Time')}</span>
-            </div>
-            <button class="btn-lime-apply" onclick="event.stopPropagation(); openJobDetailModal('\${j.id}')">
-              Apply &rarr;
-            </button>
-          </div>
-        </div>
-      \`).join('');
+      container.innerHTML = jobsList.map(j => (
+        '<div class="alifeo-job-card" onclick="openJobDetailModal(this.dataset.jobid)" data-jobid="' + j.id + '">' +
+          '<div class="job-card-top">' +
+            '<div class="company-avatar-box">' +
+              (j.company_logo ? '<img src="' + j.company_logo + '">' : '<div class="company-avatar-initials">' + escapeHtml((j.company_name || 'Alifeo').substring(0, 2).toUpperCase()) + '</div>') +
+            '</div>' +
+            '<div class="job-meta-col">' +
+              '<div class="company-name-row">' +
+                '<span>' + escapeHtml(j.company_name || 'Alifeo Partner') + '</span>' +
+                '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#15965B" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' +
+              '</div>' +
+              '<div class="job-title-text">' + escapeHtml(j.title) + '</div>' +
+              '<div class="job-sub-row">' +
+                '<span>📍 <strong>' + (j.distance_km !== undefined ? j.distance_km + ' km' : j.city) + '</strong></span>' +
+                '<span>&bull;</span>' +
+                '<span>' + escapeHtml(j.salary_display || 'Competitive') + '</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+          '<div class="job-card-bottom">' +
+            '<div class="tag-pills-row">' +
+              '<span class="mini-tag-pill mini-tag-green">' + escapeHtml(j.work_mode.toUpperCase()) + '</span>' +
+              '<span class="mini-tag-pill">' + escapeHtml(j.job_type === 'internship' ? 'Internship' : 'Full Time') + '</span>' +
+            '</div>' +
+            '<button class="btn-lime-apply" onclick="event.stopPropagation(); openJobDetailModal(this.dataset.jobid)" data-jobid="' + j.id + '">' +
+              'Apply &rarr;' +
+            '</button>' +
+          '</div>' +
+        '</div>'
+      )).join('');
     }
 
     function openJobDetailModal(jobId) {
@@ -2039,37 +2048,48 @@ export function renderJobPortalPage(
       SELECTED_JOB = job;
 
       document.getElementById('jdmTitle').innerText = job.title;
-      document.getElementById('jdmBody').innerHTML = \`
-        <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">
-          <div class="company-avatar-box" style="width: 50px; height: 50px;">
-            \${job.company_logo ? \`<img src="\${job.company_logo}">\` : \`<div class="company-avatar-initials">\${escapeHtml((job.company_name || 'Alifeo').substring(0, 2).toUpperCase())}</div>\`}
-          </div>
-          <div>
-            <div style="font-size: 15px; font-weight: 800; color: #17231D;">\${escapeHtml(job.company_name)}</div>
-            <div style="font-size: 11px; color: #78827D;">📍 \${job.distance_km !== undefined ? job.distance_km + ' km &bull; ' : ''}\${escapeHtml(job.city)} &bull; \${escapeHtml(job.work_mode.toUpperCase())}</div>
-          </div>
-        </div>
+      
+      const skillsHtml = (job.required_skills || job.skills || 'General')
+        .split(',')
+        .filter(Boolean)
+        .map(s => '<span class="mini-tag-pill">' + escapeHtml(s.trim()) + '</span>')
+        .join('');
 
-        <div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 10px; margin-bottom: 14px;">
-          <div style="font-size: 10px; font-weight: 700; color: #004D35;">Compensation / Pay:</div>
-          <div style="font-size: 16px; font-weight: 900; color: #006B3C;">\${escapeHtml(job.salary_display)}</div>
-        </div>
-
-        <div style="font-size: 12px; font-weight: 800; color: #17231D; margin-bottom: 3px;">Role Description:</div>
-        <p style="font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 14px;">\${escapeHtml(job.description || 'Join our verified company team with attractive benefits and career growth.')}</p>
-
-        <div style="font-size: 12px; font-weight: 800; color: #17231D; margin-bottom: 3px;">Skills Required:</div>
-        <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 20px;">
-          \${(job.required_skills || job.skills || 'General').split(',').filter(Boolean).map(s => \`<span class="mini-tag-pill">\${escapeHtml(s.trim())}</span>\`).join('')}
-        </div>
-
-        <div style="display: flex; gap: 8px;">
-          <button class="btn-lime-submit" style="flex: 2;" onclick="submitDirectApplication('\${job.id}')">Submit 1-Click Application &rarr;</button>
-          <button class="nav-link-btn" style="flex: 1; border: 1px solid var(--border-color); justify-content: center;" onclick="closeModal('jobDetailModal'); openInAppChat('general', '\${escapeHtml(job.company_name)}', '')">💬 Chat</button>
-        </div>
-      \`;
+      document.getElementById('jdmBody').innerHTML = 
+        '<div style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">' +
+          '<div class="company-avatar-box" style="width: 50px; height: 50px;">' +
+            (job.company_logo ? '<img src="' + job.company_logo + '">' : '<div class="company-avatar-initials">' + escapeHtml((job.company_name || 'Alifeo').substring(0, 2).toUpperCase()) + '</div>') +
+          '</div>' +
+          '<div>' +
+            '<div style="font-size: 15px; font-weight: 800; color: #17231D;">' + escapeHtml(job.company_name) + '</div>' +
+            '<div style="font-size: 11px; color: #78827D;">📍 ' + (job.distance_km !== undefined ? job.distance_km + ' km &bull; ' : '') + escapeHtml(job.city) + ' &bull; ' + escapeHtml(job.work_mode.toUpperCase()) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 12px; padding: 10px; margin-bottom: 14px;">' +
+          '<div style="font-size: 10px; font-weight: 700; color: #004D35;">Compensation / Pay:</div>' +
+          '<div style="font-size: 16px; font-weight: 900; color: #006B3C;">' + escapeHtml(job.salary_display) + '</div>' +
+        '</div>' +
+        '<div style="font-size: 12px; font-weight: 800; color: #17231D; margin-bottom: 3px;">Role Description:</div>' +
+        '<p style="font-size: 12px; color: #475569; line-height: 1.5; margin-bottom: 14px;">' + escapeHtml(job.description || 'Join our verified company team with attractive benefits and career growth.') + '</p>' +
+        '<div style="font-size: 12px; font-weight: 800; color: #17231D; margin-bottom: 3px;">Skills Required:</div>' +
+        '<div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 20px;">' + skillsHtml + '</div>' +
+        '<div style="display: flex; gap: 8px;">' +
+          '<button class="btn-lime-submit" style="flex: 2;" onclick="submitSelectedJobApplication()">Submit 1-Click Application &rarr;</button>' +
+          '<button class="nav-link-btn" style="flex: 1; border: 1px solid var(--border-color); justify-content: center;" onclick="openSelectedJobChat()">💬 Chat</button>' +
+        '</div>';
 
       openModal('jobDetailModal');
+    }
+
+    function submitSelectedJobApplication() {
+      if (!SELECTED_JOB) return;
+      submitDirectApplication(SELECTED_JOB.id);
+    }
+
+    function openSelectedJobChat() {
+      if (!SELECTED_JOB) return;
+      closeModal('jobDetailModal');
+      openInAppChat('general', SELECTED_JOB.company_name, '');
     }
 
     async function submitDirectApplication(jobId) {
