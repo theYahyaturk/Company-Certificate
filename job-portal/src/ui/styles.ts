@@ -1521,4 +1521,211 @@ export const JOB_PORTAL_STYLES = `
   .chat-send-btn:active {
     transform: scale(0.95);
   }
+
+  /* ============================================================= */
+  /* AI RESUME INTELLIGENCE SCANNER & VERIFICATION UI              */
+  /* ============================================================= */
+  .ai-scan-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 3000;
+    padding: 16px;
+    animation: fadeInOverlay 0.2s ease-out;
+  }
+  .ai-scan-overlay.active {
+    display: flex;
+  }
+  @keyframes fadeInOverlay {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .ai-scan-card {
+    background: #FFFFFF;
+    border-radius: 24px;
+    width: 100%;
+    max-width: 440px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 30px 70px rgba(0, 77, 53, 0.25);
+    border: 1.5px solid #A7F3D0;
+    position: relative;
+    overflow: hidden;
+    animation: zoomModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Laser scanner container */
+  .ai-scanner-doc-box {
+    width: 76px;
+    height: 96px;
+    margin: 0 auto 18px auto;
+    background: #FFFFFF;
+    border: 2px solid #15965B;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(21, 150, 91, 0.2);
+  }
+  .ai-scanner-doc-lines {
+    width: 60%;
+    height: 3px;
+    background: #E2E8F0;
+    margin: 4px 0;
+    border-radius: 2px;
+  }
+  .ai-scanner-laser {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #CFF92D, #15965B, #CFF92D, transparent);
+    box-shadow: 0 0 12px #CFF92D, 0 0 20px #15965B;
+    animation: laserScan 1.3s ease-in-out infinite alternate;
+  }
+  @keyframes laserScan {
+    0% { top: 4%; opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { top: 92%; opacity: 0.6; }
+  }
+
+  /* Scanning steps checklist */
+  .ai-scan-steps-list {
+    text-align: left;
+    margin: 18px 0;
+    background: #F8FAF7;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .ai-scan-step-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--secondary-text);
+    transition: all 0.25s ease;
+  }
+  .ai-scan-step-row.completed {
+    color: var(--primary-dark-green);
+  }
+  .ai-scan-step-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: all 0.25s ease;
+  }
+  .ai-scan-step-row.completed .ai-scan-step-icon {
+    background: #CFF92D;
+    color: var(--deep-green);
+    font-weight: 900;
+  }
+  .ai-scan-step-row.active .ai-scan-step-icon {
+    background: #ECFDF5;
+    color: #006B3C;
+    border: 2px solid #006B3C;
+    animation: spinStep 1s linear infinite;
+  }
+  @keyframes spinStep {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Verified Result Card in Form */
+  .ai-result-hero-card {
+    background: #FFFFFF;
+    border: 1.5px solid #15965B;
+    border-radius: 20px;
+    padding: 18px 18px 14px 18px;
+    margin-top: 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 30px rgba(21, 150, 91, 0.08);
+    position: relative;
+    animation: fadeInBubble 0.25s ease-out;
+  }
+  .ai-result-badge-top {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #CFF92D;
+    color: var(--deep-green);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 12px;
+  }
+  .ai-role-highlight-box {
+    background: #F8FAF7;
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .ai-role-title-text {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-dark-green);
+  }
+  .ai-skills-clean-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .ai-skill-chip-pill {
+    background: #ECFDF5;
+    border: 1px solid #A7F3D0;
+    color: var(--primary-dark-green);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
+  }
+  .ai-skill-chip-pill:hover {
+    background: #CFF92D;
+    color: var(--deep-green);
+    border-color: #CFF92D;
+  }
+  .ai-skill-chip-remove {
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 12px;
+    color: #94A3B8;
+  }
+  .ai-skill-chip-remove:hover {
+    color: #E54848;
+  }
+  .ai-add-skill-box {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+  }
 `;
