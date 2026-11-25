@@ -27,18 +27,32 @@ async function queryD1(sql) {
 }
 
 async function run() {
-  const tables = await queryD1("SELECT name FROM sqlite_master WHERE type='table';");
-  console.log("Existing Tables:", tables.result[0].results.map(r => r.name));
-
   const apps = await queryD1("PRAGMA table_info(job_applications);");
-  if (apps.result && apps.result[0]) {
-    console.log("job_applications columns:", apps.result[0].results.map(r => r.name));
+  console.log("job_applications:", apps.result[0].results.map(r => `${r.name} (${r.type}, notnull=${r.notnull})`));
+
+  const chat = await queryD1("PRAGMA table_info(chat_messages);");
+  console.log("chat_messages:", chat.result[0].results.map(r => `${r.name} (${r.type}, notnull=${r.notnull})`));
+
+  // 1. Remove the SALES job and ok job, leaving ONLY UI/UX job approved as user requested
+  console.log("\nUpdating jobs according to user instruction (only real UI/UX job active)...");
+  await queryD1("UPDATE jobs SET status = 'removed', is_hiring_active = 0 WHERE title = 'SALES' OR title = 'ok' OR city = 'ok';");
+  await queryD1("UPDATE jobs SET status = 'approved', is_hiring_active = 1 WHERE title = 'UI/UX' AND city = 'Moradabad';");
+
+  // 2. Add missing columns to chat_messages
+  const chatCols = [
+    "ALTER TABLE chat_messages ADD COLUMN conversation_id TEXT",
+    "ALTER TABLE chat_messages ADD COLUMN sender_phone TEXT",
+    "ALTER TABLE chat_messages ADD COLUMN sender_role TEXT",
+    "ALTER TABLE chat_messages ADD COLUMN is_read INTEGER DEFAULT 0"
+  ];
+  for (const c of chatCols) {
+    const res = await queryD1(c);
+    console.log(c, "->", res.success ? "OK" : res.errors?.[0]?.message);
   }
 
-  const profiles = await queryD1("PRAGMA table_info(job_seeker_profiles);");
-  if (profiles.result && profiles.result[0]) {
-    console.log("job_seeker_profiles columns:", profiles.result[0].results.map(r => r.name));
-  }
+  // 3. Check active approved jobs in D1
+  const activeJobs = await queryD1("SELECT id, title, company_name, city, status, is_hiring_active FROM jobs WHERE status = 'approved' AND is_hiring_active = 1;");
+  console.log("\nCURRENT APPROVED JOBS IN D1:", JSON.stringify(activeJobs.result[0].results, null, 2));
 }
 
 run().catch(console.error);

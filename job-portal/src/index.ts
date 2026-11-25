@@ -849,16 +849,19 @@ export default {
 
         await env.DB.prepare(`
           INSERT INTO job_applications (
-            id, job_id, candidate_phone, candidate_name, candidate_email,
-            resume_id, resume_filename, resume_snapshot_data, resume_mime_type,
+            id, job_id, job_title, company, candidate_phone, candidate_name, candidate_email,
+            resume_url, resume_id, resume_filename, resume_snapshot_data, resume_mime_type,
             screening_answers_json, cover_note, status, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied', ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'applied', ?, ?)
         `).bind(
           appId,
           job.id,
+          job.title,
+          job.company_name || job.company || 'Alifeo',
           session.phone,
           (b.candidate_name || session.name || 'Candidate').trim(),
           (b.candidate_email || session.email || '').trim(),
+          resumeFilename || 'resume.pdf',
           resumeId,
           resumeFilename,
           resumeData,
@@ -877,8 +880,8 @@ export default {
         // Create initial chat message for this application
         const welcomeMsgId = 'MSG-' + Date.now().toString(36);
         await env.DB.prepare(`
-          INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_name, message, is_read, created_at)
-          VALUES (?, ?, ?, ?, 'system', 'Where is My Job? Bot', ?, 0, ?)
+          INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_type, sender_name, message, is_read, created_at)
+          VALUES (?, ?, ?, ?, 'system', 'system', 'Where is My Job? Bot', ?, 0, ?)
         `).bind(
           welcomeMsgId, 'CONV-' + appId, appId, job.employer_phone,
           `Application submitted for ${job.title} at ${job.company_name || 'Company'}. The hiring team has been notified.`,
@@ -1139,12 +1142,13 @@ export default {
             appId = 'APP-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
             await env.DB.prepare(`
               INSERT INTO job_applications (
-                id, job_id, candidate_phone, candidate_name, candidate_email,
-                resume_id, resume_filename, resume_snapshot_data, resume_mime_type,
+                id, job_id, job_title, company, candidate_phone, candidate_name, candidate_email,
+                resume_url, resume_id, resume_filename, resume_snapshot_data, resume_mime_type,
                 status, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, 'inquiry', 'Inquiry', '', 'text/plain', 'applied', ?, ?)
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, 'inquiry.txt', 'inquiry', 'Inquiry', '', 'text/plain', 'applied', ?, ?)
             `).bind(
-              appId, job.id, session.phone, session.name || 'Candidate', session.email || '', Date.now(), Date.now()
+              appId, job.id, job.title || '', job.company_name || job.company || 'Alifeo',
+              session.phone, session.name || 'Candidate', session.email || '', Date.now(), Date.now()
             ).run();
           }
         }
@@ -1173,10 +1177,10 @@ export default {
           const senderRole = session.active_role === 'employer' ? 'employer' : 'candidate';
 
           await env.DB.prepare(`
-            INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_name, message, is_read, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)
+            INSERT INTO chat_messages (id, conversation_id, application_id, sender_phone, sender_role, sender_type, sender_name, message, is_read, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
           `).bind(
-            msgId, 'CONV-' + appId, appId, session.phone, senderRole,
+            msgId, 'CONV-' + appId, appId, session.phone, senderRole, senderRole,
             session.name || (senderRole === 'employer' ? 'Recruiter' : 'Candidate'),
             message, Date.now()
           ).run();
@@ -1584,7 +1588,7 @@ async function ensureJobTables(db: D1Database): Promise<void> {
         state = 'Uttar Pradesh', pincode = '244001',
         workplace_type = 'Corporate Office / Tech Hub',
         is_hiring_active = 1
-      WHERE (LOWER(city) = 'moradabad' OR LOWER(city) = 'ok') AND (latitude IS NULL OR longitude IS NULL)
+      WHERE LOWER(city) = 'moradabad' AND (latitude IS NULL OR longitude IS NULL)
     `).run();
 
     await db.prepare(`
