@@ -1031,6 +1031,22 @@ export function renderJobPortalPage(
           <div style="font-size: 12px; color: #78827D;">WhatsApp Verified: <strong>${escapeHtml(userPhone)}</strong></div>
         </div>
 
+        <!-- AI Verified Intelligence Card in Profile Details -->
+        <div id="profAiVerifiedBox" style="background: linear-gradient(135deg, #F0FDF4 0%, #FFFFFF 100%); border: 1.5px solid #15965B; border-radius: 16px; padding: 12px 14px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(21, 150, 91, 0.08);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="background: #CFF92D; color: #004D35; font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 100px;">✨ AI Resume Intelligence Verified</span>
+              <span style="font-size: 11px; font-weight: 800; color: #15965B;" id="profAiMatchTag">95% Match</span>
+            </div>
+            <button type="button" class="nav-link-btn" style="border: 1px solid #15965B; color: #006B3C; font-size: 11px; padding: 4px 10px; font-weight: 800; background: #FFFFFF; display: inline-flex; align-items: center; gap: 4px;" onclick="triggerProfileAiRescan()">
+              ⚡ Re-Sync from Resume
+            </button>
+          </div>
+          <div style="margin-top: 8px; font-size: 12px; font-weight: 700; color: #17231D;">
+            Detected Role: <span style="color: #006B3C; font-weight: 800;" id="profAiDetectedRole">${escapeHtml(userProfile?.headline || 'Product Designer & UI/UX Designer')}</span>
+          </div>
+        </div>
+
         <form id="candidateProfileForm" onsubmit="event.preventDefault(); saveCandidateProfile();">
           <div class="form-row-2col">
             <div class="form-group-ui">
@@ -1141,16 +1157,16 @@ export function renderJobPortalPage(
         <div id="resumesListContainer">
           ${userResumes.length > 0 ? userResumes.map(r => `
             <div class="resume-list-item">
-              <div style="flex: 1; min-width: 180px;">
-                <div style="display: flex; align-items: center; gap: 6px;">
+              <div class="resume-filename-box">
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
                   <span style="font-size: 13px; font-weight: 800; color: #17231D;">${escapeHtml(r.filename)}</span>
                   ${r.is_current ? `<span class="resume-default-badge">DEFAULT</span>` : ''}
                 </div>
-                <div style="font-size: 11px; color: #78827D; margin-top: 2px;">
+                <div style="font-size: 11px; color: #78827D; margin-top: 3px;">
                   ${Math.max(1, Math.round((r.file_size || 0) / 1024))} KB &bull; Uploaded ${new Date(r.uploaded_at).toLocaleDateString()}
                 </div>
               </div>
-              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+              <div class="resume-actions-toolbar">
                 <a href="/api/resumes/${r.id}/view" target="_blank" class="nav-link-btn" style="border: 1px solid #15965B; color: #006B3C; font-weight: 700; padding: 5px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;" title="View Resume in New Tab">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View
                 </a>
@@ -1521,37 +1537,94 @@ export function renderJobPortalPage(
       const role = data.predicted_role || 'Product Designer & UI/UX Designer';
       const skills = data.extracted_skills || [];
 
-      // 1. Set Role / Headline
-      const headlineEl = document.getElementById(context === 'onboarding' ? 'profileHeadline' : 'profHeadline');
-      if (headlineEl && role) {
-        headlineEl.value = role;
-      }
+      // 1. Set Role / Headline in both onboarding and profile modal
+      const headlineEl = document.getElementById('profileHeadline');
+      if (headlineEl && role) headlineEl.value = role;
 
-      // 2. Set Clean Verified Skills
+      const profHeadlineEl = document.getElementById('profHeadline');
+      if (profHeadlineEl && role) profHeadlineEl.value = role;
+
+      const profAiRoleEl = document.getElementById('profAiDetectedRole');
+      if (profAiRoleEl && role) profAiRoleEl.innerText = role;
+
+      // 2. Set Clean Verified Skills in both runtime arrays
       if (skills.length > 0) {
         SELECTED_SKILLS = [...skills];
+        PROFILE_SKILLS = [...skills];
       }
 
-      if (context === 'onboarding') {
-        const resultCard = document.getElementById('aiVerifiedResultCard');
-        if (resultCard) resultCard.style.display = 'block';
-        const roleText = document.getElementById('aiResultRoleText');
-        if (roleText) roleText.innerText = role;
-        renderAiSkillsGrid();
+      // Update Onboarding Result Card
+      const resultCard = document.getElementById('aiVerifiedResultCard');
+      if (resultCard) resultCard.style.display = 'block';
+      const roleText = document.getElementById('aiResultRoleText');
+      if (roleText) roleText.innerText = role;
+      renderAiSkillsGrid();
 
-        const manualGroup = document.getElementById('manualSkillsGroupBox');
-        if (manualGroup) manualGroup.style.display = 'none';
-      } else {
-        const hiddenEl = document.getElementById('profSkillsHidden');
-        if (hiddenEl && skills.length > 0) {
-          hiddenEl.value = skills.join(', ');
-          if (typeof renderProfileSkillsChips === 'function') {
-            renderProfileSkillsChips();
-          }
+      const manualGroup = document.getElementById('manualSkillsGroupBox');
+      if (manualGroup) manualGroup.style.display = 'none';
+
+      // Update Profile Modal Chips & Hidden field
+      const hiddenEl = document.getElementById('profSkillsHidden');
+      if (hiddenEl && PROFILE_SKILLS.length > 0) {
+        hiddenEl.value = PROFILE_SKILLS.join(', ');
+      }
+      renderProfileSkillsChips();
+
+      // Show Profile AI banner
+      const profAiBox = document.getElementById('profAiVerifiedBox');
+      if (profAiBox) profAiBox.style.display = 'block';
+
+      // Auto-save verified role & skills to backend immediately
+      fetch('/api/profile/seeker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          headline: role,
+          skills: PROFILE_SKILLS.join(', ')
+        })
+      }).catch(function(err) { console.warn('Profile sync notice:', err); });
+
+      showInAppToast('✨ AI Resume Intelligence: Verified ' + role + ' & ' + PROFILE_SKILLS.length + ' Core Skills!', 'success');
+    }
+
+    async function triggerProfileAiRescan() {
+      showInAppToast('⚡ Fetching active resume for AI re-analysis...', 'info');
+      try {
+        const res = await fetch('/api/resumes');
+        const data = await res.json();
+        const resumes = data.resumes || [];
+        const current = resumes.find(r => r.is_current) || resumes[0];
+        if (!current) {
+          showInAppToast('No resume found. Please upload a resume first.', 'info');
+          switchProfileTab('profileResumes');
+          return;
         }
-      }
 
-      showInAppToast('✨ AI Resume Intelligence: Verified ' + role + ' & ' + SELECTED_SKILLS.length + ' Core Skills!', 'success');
+        const scanOverlay = document.getElementById('aiScanOverlay');
+        const scanFileName = document.getElementById('aiScanFileName');
+        if (scanOverlay) scanOverlay.classList.add('active');
+        if (scanFileName) scanFileName.innerText = 'Analyzing: ' + current.filename;
+
+        const aiRes = await fetch('/api/analyze-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            filename: current.filename,
+            text: current.filename
+          })
+        });
+        const aiData = await aiRes.json();
+        await new Promise(r => setTimeout(r, 600));
+        if (scanOverlay) scanOverlay.classList.remove('active');
+
+        if (aiData && aiData.success) {
+          applyAiResumeAnalysis(aiData, 'profile');
+        } else {
+          showInAppToast('Unable to complete AI scan', 'error');
+        }
+      } catch (e) {
+        showInAppToast('Error re-analyzing resume', 'error');
+      }
     }
 
     function toggleSkillChip(el, skill) {
@@ -1784,13 +1857,18 @@ export function renderJobPortalPage(
     }
 
     // Resume Management
-    function handleResumeFileSelected(event) {
+    async function handleResumeFileSelected(event) {
       const file = event.target.files[0];
       if (!file) return;
       if (file.size > 5 * 1024 * 1024) {
         showInAppToast('Resume file must be under 5MB', 'error');
         return;
       }
+
+      // 1. Kick off high-tech AI scan modal
+      const scanPromise = analyzeResumeWithAI(file, 'profile');
+
+      // 2. Concurrently read file and upload to resumes database
       const reader = new FileReader();
       reader.onload = async function(e) {
         const b64 = e.target.result;
@@ -1807,15 +1885,17 @@ export function renderJobPortalPage(
             })
           });
           const data = await res.json();
+          await scanPromise;
+
           if (data.success) {
-            showInAppToast('Resume uploaded! Running AI scan...', 'success');
-            await analyzeResumeWithAI(file, 'profile');
-            setTimeout(() => window.location.reload(), 900);
+            showInAppToast('✨ Resume uploaded & AI Verified! Profile updated.', 'success');
+            // Switch to profile details tab so candidate sees their updated role and skills
+            switchProfileTab('profileDetails');
           } else {
-            showInAppToast(data.error || 'Failed to upload resume', 'error');
+            showInAppToast(data.error || 'Resume saved with notice', 'info');
           }
         } catch (err) {
-          showInAppToast('Error uploading resume', 'error');
+          showInAppToast('Error saving resume to server', 'error');
         }
       };
       reader.readAsDataURL(file);
@@ -1940,32 +2020,56 @@ export function renderJobPortalPage(
       document.getElementById('inboxRecipientSub').innerText = (jobTitle ? jobTitle + ' • ' : '') + 'Where is My Job Chat';
       document.getElementById('inboxInputBar').style.display = 'flex';
 
+      await loadInboxMessages(convoId, jobTitle, false);
+
+      if (window._inboxPollTimer) clearInterval(window._inboxPollTimer);
+      window._inboxPollTimer = setInterval(function() {
+        if (ACTIVE_CONVERSATION_ID === convoId && ACTIVE_VIEW === 'inbox-view') {
+          loadInboxMessages(convoId, jobTitle, true);
+        } else {
+          clearInterval(window._inboxPollTimer);
+          window._inboxPollTimer = null;
+        }
+      }, 3500);
+    }
+
+    async function loadInboxMessages(convoId, jobTitle, isPoll) {
       const body = document.getElementById('inboxMessagesBody');
-      body.innerHTML = '<div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>';
+      if (!body) return;
+      if (!isPoll) {
+        body.innerHTML = '<div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>';
+      }
 
       try {
-        const res = await fetch('/api/chat/messages?application_id=' + convoId);
+        const res = await fetch('/api/chat/' + encodeURIComponent(convoId) + '/messages');
         const data = await res.json();
-        if (data.success && data.messages) {
-          if (data.messages.length === 0) {
-            body.innerHTML = '<div style="padding: 32px; text-align: center; color: #94A3B8; font-size: 12px;">This is the beginning of your conversation regarding ' + escapeHtml(jobTitle) + '.</div>';
-          } else {
-            body.innerHTML = data.messages.map(m => {
-              const isOut = m.sender_phone === '${userPhone}';
-              return (
-                '<div class="chat-bubble ' + (isOut ? 'chat-bubble-out' : 'chat-bubble-in') + '">' +
-                  '<div>' + escapeHtml(m.message) + '</div>' +
-                  '<div style="font-size: 9px; color: ' + (isOut ? '#D1FAE5' : '#94A3B8') + '; margin-top: 4px; text-align: right;">' +
-                    new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
-                  '</div>' +
-                '</div>'
-              );
-            }).join('');
-          }
+        const messages = data.messages || [];
+
+        if (isPoll && body.dataset.msgCount === String(messages.length)) {
+          return;
+        }
+        body.dataset.msgCount = String(messages.length);
+
+        if (messages.length === 0) {
+          body.innerHTML = '<div style="padding: 32px; text-align: center; color: #94A3B8; font-size: 12px;">This is the beginning of your conversation regarding ' + escapeHtml(jobTitle || 'this job opening') + '.</div>';
+        } else {
+          body.innerHTML = messages.map(function(m) {
+            const isOut = m.sender_phone === '${userPhone}';
+            return (
+              '<div class="chat-bubble ' + (isOut ? 'chat-bubble-out' : 'chat-bubble-in') + '">' +
+                '<div>' + escapeHtml(m.message) + '</div>' +
+                '<div style="font-size: 9px; color: ' + (isOut ? '#D1FAE5' : '#94A3B8') + '; margin-top: 4px; text-align: right;">' +
+                  new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
+                '</div>' +
+              '</div>'
+            );
+          }).join('');
           body.scrollTop = body.scrollHeight;
         }
       } catch (e) {
-        body.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Error loading messages.</div>';
+        if (!isPoll) {
+          body.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Error loading messages. Please try again.</div>';
+        }
       }
     }
 
@@ -1983,7 +2087,7 @@ export function renderJobPortalPage(
       body.scrollTop = body.scrollHeight;
 
       try {
-        await fetch('/api/chat/messages', {
+        await fetch('/api/chat/' + encodeURIComponent(ACTIVE_CONVERSATION_ID) + '/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

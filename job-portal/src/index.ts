@@ -1295,23 +1295,40 @@ export default {
         return new Response(JSON.stringify({ success: true, application_id: appId }), { headers: corsHeaders });
       }
 
-      if (path.startsWith('/api/chat/') && path.endsWith('/messages')) {
+      if ((path.startsWith('/api/chat/') && path.endsWith('/messages')) || path === '/api/chat/messages') {
         const parts = path.split('/');
-        const appId = parts[3];
+        let appId = parts[3];
+        if (!appId || appId === 'messages') {
+          appId = url.searchParams.get('application_id') || '';
+        }
 
         if (method === 'GET') {
+          if (!appId) {
+            return new Response(JSON.stringify({ success: true, messages: [] }), { headers: corsHeaders });
+          }
+
           const { results: messages } = await env.DB.prepare(
             'SELECT * FROM chat_messages WHERE application_id = ? ORDER BY created_at ASC'
           ).bind(appId).all<ChatMessage>();
 
-          return new Response(JSON.stringify({ messages: messages || [] }), { headers: corsHeaders });
+          return new Response(JSON.stringify({ success: true, messages: messages || [] }), { headers: corsHeaders });
         }
 
         if (method === 'POST') {
-          if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+          if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
           const b = await request.json() as any;
+          if (!appId || appId === 'messages') {
+            appId = b.application_id || '';
+          }
+          if (!appId) {
+            return new Response(JSON.stringify({ error: 'Missing application_id' }), { status: 400, headers: corsHeaders });
+          }
+
           const msgId = 'MSG-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 5);
           const message = (b.message || '').trim();
+          if (!message) {
+            return new Response(JSON.stringify({ error: 'Message cannot be empty' }), { status: 400, headers: corsHeaders });
+          }
 
           const senderRole = session.active_role === 'employer' ? 'employer' : 'candidate';
 

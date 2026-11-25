@@ -1143,23 +1143,46 @@ export const JOB_PORTAL_STYLES = `
   /* Resume Management Styles */
   .resume-list-item {
     background: #F8FAF7;
-    border: 1px solid var(--border-color);
-    border-radius: 14px;
-    padding: 12px 14px;
-    margin-bottom: 10px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 10px;
+  }
+  @media (min-width: 600px) {
+    .resume-list-item {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+  }
+  .resume-filename-box {
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: anywhere;
   }
   .resume-default-badge {
     font-size: 10px;
     font-weight: 800;
     background: var(--primary-lime);
     color: var(--deep-green);
-    padding: 2px 8px;
+    padding: 3px 8px;
     border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+  }
+  .resume-actions-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
   }
 
   /* Dedicated Messages / Inbox Layout */
