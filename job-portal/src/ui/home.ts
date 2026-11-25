@@ -171,11 +171,19 @@ export function renderJobPortalPage(
       <div class="form-group-ui">
         <label class="form-label-ui">Upload Resume <span style="font-weight: 500; color: #78827D;">(PDF, DOCX max 5MB)</span></label>
         <div onclick="document.getElementById('resumeFileInput').click()" style="background: #F8FAF7; border: 1.5px dashed var(--border-color); border-radius: 12px; padding: 12px; text-align: center; cursor: pointer;">
-          <div style="font-size: 12px; font-weight: 700; color: #006B3C;" id="resumeFileLabel">📎 Choose Resume File</div>
+          <div style="font-size: 12px; font-weight: 700; color: #006B3C;" id="resumeFileLabel">📎 Choose Resume File (Auto-Detect Role &amp; Skills)</div>
+        </div>
+        <div id="resumeAiStatus" style="display: none; background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 10px; padding: 8px 12px; margin-top: 8px; font-size: 11px; color: #004D35;">
+          <span style="font-weight: 800;">✨ Resume Intelligence:</span> <span id="resumeAiStatusText">Analyzing skills and role...</span>
         </div>
         <input type="file" id="resumeFileInput" accept=".pdf,.doc,.docx" style="display: none;" onchange="handleResumeFile(event)">
         <input type="hidden" id="resumeBase64">
         <input type="hidden" id="resumeFilename">
+      </div>
+
+      <div class="form-group-ui">
+        <label class="form-label-ui">Professional Role / Headline <span style="font-weight: 500; font-size: 10px; color: #15965B;">(Auto-filled by AI)</span></label>
+        <input type="text" id="profileHeadline" class="form-input-ui" placeholder="e.g. Senior UI/UX &amp; Product Designer">
       </div>
 
       <div class="form-group-ui">
@@ -1334,7 +1342,7 @@ export function renderJobPortalPage(
       reader.readAsDataURL(file);
     }
 
-    function handleResumeFile(event) {
+    async function handleResumeFile(event) {
       const file = event.target.files[0];
       if (!file) return;
       document.getElementById('resumeFileLabel').innerText = '✓ ' + file.name;
@@ -1346,6 +1354,93 @@ export function renderJobPortalPage(
         document.getElementById('resumeBase64').value = e.target.result;
       };
       reader.readAsDataURL(file);
+
+      // Trigger AI Resume Intelligence to auto-detect role & skills
+      await analyzeResumeWithAI(file, 'onboarding');
+    }
+
+    async function analyzeResumeWithAI(file, context) {
+      const statusBox = document.getElementById('resumeAiStatus');
+      const statusText = document.getElementById('resumeAiStatusText');
+      if (statusBox) statusBox.style.display = 'block';
+      if (statusText) statusText.innerText = 'Extracting skills and job role from resume...';
+
+      let analysisResult = null;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const mlUrl = window.ALIFEO_ML_URL || 'http://127.0.0.1:8000/analyze-resume';
+        const res = await fetch(mlUrl, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            analysisResult = data;
+          }
+        }
+      } catch (err) {
+        console.warn('Local ML service direct connection notice:', err);
+      }
+
+      if (analysisResult) {
+        applyAiResumeAnalysis(analysisResult, context);
+      } else {
+        if (statusBox) statusBox.style.display = 'none';
+      }
+    }
+
+    function applyAiResumeAnalysis(data, context) {
+      const role = data.predicted_role;
+      const skills = data.extracted_skills || [];
+
+      // 1. Set Role / Headline
+      const headlineEl = document.getElementById(context === 'onboarding' ? 'profileHeadline' : 'profHeadline');
+      if (headlineEl && role) {
+        headlineEl.value = role;
+      }
+
+      // 2. Add / Highlight Skills
+      if (context === 'onboarding') {
+        const chipBox = document.getElementById('skillsChipBox');
+        if (chipBox && skills.length > 0) {
+          skills.forEach(s => {
+            if (!SELECTED_SKILLS.includes(s)) {
+              SELECTED_SKILLS.push(s);
+              const chip = document.createElement('span');
+              chip.className = 'skill-selectable-chip selected';
+              chip.innerText = s;
+              chip.onclick = function() { toggleSkillChip(this, s); };
+              chipBox.appendChild(chip);
+            }
+          });
+        }
+      } else {
+        const hiddenEl = document.getElementById('profSkillsHidden');
+        if (hiddenEl && skills.length > 0) {
+          const current = (hiddenEl.value || '').split(',').map(s => s.trim()).filter(Boolean);
+          skills.forEach(s => {
+            if (!current.includes(s)) current.push(s);
+          });
+          hiddenEl.value = current.join(', ');
+          if (typeof renderProfileSkillsChips === 'function') {
+            renderProfileSkillsChips();
+          }
+        }
+      }
+
+      const statusBox = document.getElementById('resumeAiStatus');
+      const statusText = document.getElementById('resumeAiStatusText');
+      if (statusBox) statusBox.style.display = 'block';
+      if (statusText) {
+        statusText.innerHTML = '<strong>Role:</strong> ' + escapeHtml(role) + ' &bull; <strong>' + skills.length + ' Skills auto-selected!</strong>';
+      }
+
+      showInAppToast('✨ AI Resume Intelligence: Auto-detected ' + role + ' & ' + skills.length + ' skills!', 'success');
     }
 
     function toggleSkillChip(el, skill) {
@@ -1379,6 +1474,7 @@ export function renderJobPortalPage(
             name,
             photo_url,
             location,
+            headline: document.getElementById('profileHeadline')?.value.trim() || '',
             skills: SELECTED_SKILLS.join(', ')
           })
         });
