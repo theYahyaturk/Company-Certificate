@@ -673,10 +673,10 @@ export function renderJobPortalPage(
 
         <div id="myApplicationsContainer">
           ${myApplications.length > 0 ? myApplications.map(app => {
-            const statusKey = (app.status || 'applied').toLowerCase().replace(' ', '_');
-            const statusClass = 'status-pill-' + statusKey;
-            const statusLabel = (app.status || 'applied').replace('_', ' ').toUpperCase();
-            return `
+    const statusKey = (app.status || 'applied').toLowerCase().replace(' ', '_');
+    const statusClass = 'status-pill-' + statusKey;
+    const statusLabel = (app.status || 'applied').replace('_', ' ').toUpperCase();
+    return `
               <div class="job-card-feed app-item-card" data-status="${escapeHtml(app.status)}" style="margin-bottom: 14px;">
                 <div class="job-card-top">
                   <div class="company-avatar-box">
@@ -713,7 +713,7 @@ export function renderJobPortalPage(
                 </div>
               </div>
             `;
-          }).join('') : `
+  }).join('') : `
             <div style="text-align: center; padding: 48px 16px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 20px;">
               <div style="width: 56px; height: 56px; border-radius: 50%; background: #ECFDF5; color: #006B3C; font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">📄</div>
               <h3 style="font-size: 17px; font-weight: 800; color: #17231D; margin-bottom: 6px;">No Applications Submitted Yet</h3>
@@ -1264,6 +1264,7 @@ export function renderJobPortalPage(
     let CURRENT_CHAT_APP_ID = null;
     let ONBOARDING_PHONE = '';
     let SELECTED_SKILLS = ['UI/UX', 'Design'];
+    let PROFILE_SKILLS = ['UI/UX', 'Design'];
 
     // In-App Toast Engine (100% replaces alert())
     let toastTimeout = null;
@@ -1508,16 +1509,20 @@ export function renderJobPortalPage(
     function renderAiSkillsGrid() {
       const grid = document.getElementById('aiResultSkillsGrid');
       if (!grid) return;
-      grid.innerHTML = SELECTED_SKILLS.map(function(s) {
+      grid.innerHTML = SELECTED_SKILLS.map(function(s, idx) {
         return '<span class="ai-skill-chip-pill">' +
           escapeHtml(s) +
-          '<span class="ai-skill-chip-remove" onclick="removeAiSkill(\'' + escapeHtml(s) + '\')" title="Remove Skill">&times;</span>' +
+          '<span class="ai-skill-chip-remove" onclick="removeAiSkill(' + idx + ')" title="Remove Skill">&times;</span>' +
           '</span>';
       }).join('');
     }
 
-    function removeAiSkill(skillName) {
-      SELECTED_SKILLS = SELECTED_SKILLS.filter(s => s !== skillName);
+    function removeAiSkill(idx) {
+      if (typeof idx === 'number') {
+        SELECTED_SKILLS.splice(idx, 1);
+      } else {
+        SELECTED_SKILLS = SELECTED_SKILLS.filter(function(s) { return s !== idx; });
+      }
       renderAiSkillsGrid();
     }
 
@@ -1781,10 +1786,12 @@ export function renderJobPortalPage(
       reader.readAsDataURL(file);
     }
 
-    let PROFILE_SKILLS = (document.getElementById('profSkillsHidden')?.value || 'UI/UX, Design')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
+    if (document.getElementById('profSkillsHidden')?.value) {
+      PROFILE_SKILLS = document.getElementById('profSkillsHidden').value
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+    }
 
     function renderProfileSkillsChips() {
       const container = document.getElementById('profSkillsChipsContainer');
@@ -2145,6 +2152,11 @@ export function renderJobPortalPage(
     function initHiringMap() {
       const container = document.getElementById('hiringMap');
       if (!container || MAP_INSTANCE) return;
+
+      if (typeof L === 'undefined') {
+        setTimeout(initHiringMap, 300);
+        return;
+      }
 
       MAP_INSTANCE = L.map('hiringMap', {
         center: [USER_COORDS.lat, USER_COORDS.lng],
