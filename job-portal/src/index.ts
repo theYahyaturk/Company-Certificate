@@ -142,7 +142,7 @@ export default {
             ).bind(session.phone).first<JobSeekerProfile>();
 
             const resumesResult = await env.DB.prepare(
-              'SELECT id, user_phone, filename, file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC'
+              'SELECT id, user_phone, filename, CASE WHEN file_size > 0 THEN file_size ELSE ROUND((LENGTH(file_data) * 3) / 4) END as file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC'
             ).bind(session.phone).all<Resume>();
             userResumes = resumesResult.results || [];
 
@@ -560,7 +560,7 @@ export default {
       if (path === '/api/profile/seeker' && method === 'GET') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
         const profile = await env.DB.prepare('SELECT * FROM job_seeker_profiles WHERE phone = ?').bind(session.phone).first();
-        const resumes = await env.DB.prepare('SELECT id, filename, file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC').bind(session.phone).all();
+        const resumes = await env.DB.prepare('SELECT id, filename, CASE WHEN file_size > 0 THEN file_size ELSE ROUND((LENGTH(file_data) * 3) / 4) END as file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC').bind(session.phone).all();
         return new Response(JSON.stringify({ profile, resumes: resumes.results || [] }), { headers: corsHeaders });
       }
 
@@ -632,20 +632,25 @@ export default {
       }
 
       // Resume Upload (PDF / DOC Base64)
-      if (path === '/api/resumes/upload' && method === 'POST') {
-        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+      if ((path === '/api/resumes/upload' || path === '/api/resumes') && method === 'POST') {
+        if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
         const b = await request.json() as any;
         const filename = (b.filename || 'resume.pdf').trim();
         const fileData = b.file_data || '';
         const mimeType = b.mime_type || 'application/pdf';
-        const fileSize = Number(b.file_size) || 0;
+        let fileSize = Number(b.file_size) || 0;
 
         if (!fileData) {
-          return new Response(JSON.stringify({ error: 'No file data received' }), { status: 400 });
+          return new Response(JSON.stringify({ error: 'No file data received' }), { status: 400, headers: corsHeaders });
+        }
+
+        if (!fileSize && fileData) {
+          const rawBase64 = fileData.replace(/^data:[^;]+;base64,/, '').replace(/\s+/g, '');
+          fileSize = Math.round((rawBase64.length * 3) / 4);
         }
 
         if (fileSize > 5 * 1024 * 1024) {
-          return new Response(JSON.stringify({ error: 'File size exceeds maximum 5MB limit' }), { status: 400 });
+          return new Response(JSON.stringify({ error: 'File size exceeds maximum 5MB limit' }), { status: 400, headers: corsHeaders });
         }
 
         const resumeId = 'RES-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -660,7 +665,7 @@ export default {
         await env.DB.prepare('UPDATE job_seeker_profiles SET current_resume_id = ? WHERE phone = ?')
           .bind(resumeId, session.phone).run();
 
-        return new Response(JSON.stringify({ success: true, resumeId, filename }), { headers: corsHeaders });
+        return new Response(JSON.stringify({ success: true, resumeId, filename, file_size: fileSize }), { headers: corsHeaders });
       }
 
       // Resume View / Download
@@ -670,7 +675,7 @@ export default {
 
         const resume = await env.DB.prepare('SELECT * FROM resumes WHERE id = ?').bind(resumeId).first<Resume>();
         if (!resume) {
-          return new Response('Resume not found', { status: 404 });
+          return new Response('Resume not found', { status: 404, headers: corsHeaders });
         }
 
         const isOwner = session && session.phone === resume.user_phone;
@@ -680,13 +685,13 @@ export default {
           const appMatch = await env.DB.prepare(`
             SELECT a.id FROM job_applications a
             JOIN jobs j ON a.job_id = j.id
-            WHERE a.resume_id = ? AND j.employer_phone = ?
-          `).bind(resumeId, session.phone).first();
+            WHERE (a.resume_id = ? OR a.candidate_phone = ?) AND j.employer_phone = ?
+          `).bind(resumeId, resume.user_phone, session.phone).first();
           if (appMatch) isAuthorizedEmployer = true;
         }
 
         if (!isOwner && !isAuthorizedEmployer && !isAdmin) {
-          return new Response('Unauthorized access to resume', { status: 403 });
+          return new Response('Unauthorized access to resume', { status: 403, headers: corsHeaders });
         }
 
         const isDownload = path.endsWith('/download');
@@ -696,8 +701,11 @@ export default {
           'Content-Disposition',
           `${isDownload ? 'attachment' : 'inline'}; filename="${encodeURIComponent(resume.filename)}"`
         );
+        headers.set('Cache-Control', 'public, max-age=3600');
+        headers.set('Access-Control-Allow-Origin', '*');
 
-        const binaryString = atob(resume.file_data.replace(/^data:[^;]+;base64,/, ''));
+        const rawBase64 = resume.file_data.replace(/^data:[^;]+;base64,/, '').replace(/\s+/g, '');
+        const binaryString = atob(rawBase64);
         const len = binaryString.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
@@ -773,7 +781,7 @@ export default {
       if (path === '/api/resumes' && method === 'GET') {
         if (!session) return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
         const { results: resumes } = await env.DB.prepare(
-          'SELECT id, filename, file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC'
+          'SELECT id, filename, CASE WHEN file_size > 0 THEN file_size ELSE ROUND((LENGTH(file_data) * 3) / 4) END as file_size, mime_type, is_current, uploaded_at FROM resumes WHERE user_phone = ? ORDER BY uploaded_at DESC'
         ).bind(session.phone).all<Resume>();
         return new Response(JSON.stringify({ success: true, resumes: resumes || [] }), { headers: corsHeaders });
       }

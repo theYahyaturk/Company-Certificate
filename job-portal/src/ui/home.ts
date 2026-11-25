@@ -929,40 +929,42 @@ export function renderJobPortalPage(
     <div class="modal-card chat-modal-card">
       <div class="chat-header">
         <div class="chat-header-user">
-          <button class="modal-close-icon" style="width: 30px; height: 30px;" onclick="closeModal('inAppChatModal')">&larr;</button>
-          <div>
-            <div style="font-size: 15px; font-weight: 800; color: #17231D;" id="chatRecipientName">Hiring Team</div>
+          <button type="button" class="chat-back-btn" onclick="closeModal('inAppChatModal')" title="Back">&larr;</button>
+          <div class="chat-avatar-icon">
+            <span id="chatAvatarInitial">H</span>
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-size: 14px; font-weight: 800; color: #17231D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="chatRecipientName">Hiring Team</div>
             <div style="font-size: 11px; font-weight: 700; color: #15965B; display: flex; align-items: center; gap: 4px;">
-              <span style="width: 6px; height: 6px; border-radius: 50%; background: #15965B;"></span> Online
+              <span style="width: 6px; height: 6px; border-radius: 50%; background: #15965B;"></span> Online &bull; Direct Hiring
             </div>
           </div>
         </div>
-        <div style="font-size: 11px; font-weight: 700; color: #78827D; background: #F1F5F9; padding: 4px 10px; border-radius: 100px;">Direct Hiring</div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <div style="font-size: 11px; font-weight: 700; color: #006B3C; background: #ECFDF5; border: 1px solid #A7F3D0; padding: 4px 10px; border-radius: 100px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="chatJobBadge">Job Details</div>
+          <button type="button" class="modal-close-icon" style="width: 28px; height: 28px; font-size: 15px;" onclick="closeModal('inAppChatModal')">&times;</button>
+        </div>
       </div>
 
       <div class="chat-messages-body" id="chatMessagesList">
-        <div class="chat-bubble chat-bubble-in">
-          <div>Hello! Thanks for applying. Please review our assessment requirement.</div>
-          <div style="font-size: 10px; color: #94A3B8; margin-top: 4px; text-align: right;">10:00 AM</div>
-        </div>
+        <!-- Dynamically populated from /api/chat/:appId/messages -->
+      </div>
 
-        <div class="chat-assignment-box">
-          <div>
-            <div style="font-size: 13px; font-weight: 800; color: #17231D;">📋 Role Assessment Task</div>
-            <div style="font-size: 11px; color: #78827D;">UI_Design_Assignment.pdf &bull; 245 KB</div>
-          </div>
-          <button class="btn-lime-apply" style="padding: 5px 12px; font-size: 11px;" onclick="showInAppToast('Assignment submitted successfully!', 'success')">Submit</button>
-        </div>
-
-        <div class="chat-bubble chat-bubble-out">
-          <div>Sure, reviewing and sharing details now.</div>
-          <div style="font-size: 10px; color: #D1FAE5; margin-top: 4px; text-align: right;">10:05 AM</div>
-        </div>
+      <div class="chat-quick-suggestions" id="chatQuickSuggestions">
+        <button type="button" class="chat-quick-chip" onclick="applyChatQuickSuggestion('I am very interested in this role!')">Interested in role</button>
+        <button type="button" class="chat-quick-chip" onclick="applyChatQuickSuggestion('When would be a good time for a short interview?')">Interview schedule</button>
+        <button type="button" class="chat-quick-chip" onclick="applyChatQuickSuggestion('I have updated my portfolio and resume.')">Portfolio updated</button>
+        <button type="button" class="chat-quick-chip" onclick="applyChatQuickSuggestion('Thank you for connecting!')">Thank you</button>
       </div>
 
       <div class="chat-input-bar">
         <input type="text" id="chatMessageInput" class="chat-input-field" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendChatMessage()">
-        <button class="chat-send-btn" onclick="sendChatMessage()">&rarr;</button>
+        <button type="button" class="chat-send-btn" id="chatSendBtn" onclick="sendChatMessage()" title="Send Message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </div>
     </div>
   </div>
@@ -1110,22 +1112,28 @@ export function renderJobPortalPage(
         <div id="resumesListContainer">
           ${userResumes.length > 0 ? userResumes.map(r => `
             <div class="resume-list-item">
-              <div>
+              <div style="flex: 1; min-width: 180px;">
                 <div style="display: flex; align-items: center; gap: 6px;">
                   <span style="font-size: 13px; font-weight: 800; color: #17231D;">${escapeHtml(r.filename)}</span>
                   ${r.is_current ? `<span class="resume-default-badge">DEFAULT</span>` : ''}
                 </div>
                 <div style="font-size: 11px; color: #78827D; margin-top: 2px;">
-                  ${Math.round((r.file_size || 0) / 1024)} KB &bull; Uploaded ${new Date(r.uploaded_at).toLocaleDateString()}
+                  ${Math.max(1, Math.round((r.file_size || 0) / 1024))} KB &bull; Uploaded ${new Date(r.uploaded_at).toLocaleDateString()}
                 </div>
               </div>
-              <div style="display: flex; gap: 6px;">
+              <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <a href="/api/resumes/${r.id}/view" target="_blank" class="nav-link-btn" style="border: 1px solid #15965B; color: #006B3C; font-weight: 700; padding: 5px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;" title="View Resume in New Tab">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> View
+                </a>
+                <a href="/api/resumes/${r.id}/download" download="${escapeHtml(r.filename)}" class="nav-link-btn" style="border: 1px solid var(--border-color); color: #17231D; font-weight: 600; padding: 5px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; text-decoration: none;" title="Download Resume">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download
+                </a>
                 ${!r.is_current ? `
-                  <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 4px 10px; font-size: 11px;" onclick="setDefaultResume('${r.id}')">
+                  <button type="button" class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 10px; font-size: 11px;" onclick="setDefaultResume('${r.id}')">
                     Set Default
                   </button>
                 ` : ''}
-                <button class="nav-link-btn" style="border: 1px solid #FECACA; color: #E54848; padding: 4px 10px; font-size: 11px;" onclick="deleteResume('${r.id}')">
+                <button type="button" class="nav-link-btn" style="border: 1px solid #FECACA; color: #E54848; padding: 5px 10px; font-size: 11px;" onclick="deleteResume('${r.id}')">
                   Delete
                 </button>
               </div>
@@ -1331,6 +1339,7 @@ export function renderJobPortalPage(
       if (!file) return;
       document.getElementById('resumeFileLabel').innerText = '✓ ' + file.name;
       document.getElementById('resumeFilename').value = file.name;
+      window._selectedResumeFileSize = file.size;
 
       const reader = new FileReader();
       reader.onload = function(e) {
@@ -1376,12 +1385,14 @@ export function renderJobPortalPage(
 
         // Upload resume if selected
         if (resumeB64) {
+          const fileSize = window._selectedResumeFileSize || Math.round((resumeB64.replace(/^data:[^;]+;base64,/, '').length * 3) / 4);
           await fetch('/api/resumes/upload', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               filename: resumeFilename,
-              file_data: resumeB64
+              file_data: resumeB64,
+              file_size: fileSize
             })
           });
         }
@@ -1449,7 +1460,13 @@ export function renderJobPortalPage(
     }
 
     function openModal(id) { document.getElementById(id)?.classList.add('active'); }
-    function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+    function closeModal(id) {
+      if (id === 'inAppChatModal' && window._chatPollTimer) {
+        clearInterval(window._chatPollTimer);
+        window._chatPollTimer = null;
+      }
+      document.getElementById(id)?.classList.remove('active');
+    }
     function openProfileModal() {
       openModal('profileModal');
       renderProfileSkillsChips();
@@ -2086,55 +2103,161 @@ export function renderJobPortalPage(
       submitDirectApplication(SELECTED_JOB.id);
     }
 
-    function openSelectedJobChat() {
+    async function openSelectedJobChat() {
       if (!SELECTED_JOB) return;
-      closeModal('jobDetailModal');
-      openInAppChat('general', SELECTED_JOB.company_name, '');
-    }
-
-    async function submitDirectApplication(jobId) {
       if (!IS_LOGGED_IN) {
         closeModal('jobDetailModal');
         goToOnboardingStep('stepChooseRole');
         return;
       }
+      closeModal('jobDetailModal');
+      showInAppToast('Opening conversation...', 'info');
       try {
-        const res = await fetch('/api/applications', {
+        const res = await fetch('/api/chat/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ job_id: jobId })
+          body: JSON.stringify({ job_id: SELECTED_JOB.id })
         });
         const data = await res.json();
-        if (data.success) {
-          showInAppToast('Application submitted! Employer will review your profile.', 'success');
-          closeModal('jobDetailModal');
+        if (data.success && data.application_id) {
+          openInAppChat(data.application_id, SELECTED_JOB.company_name, SELECTED_JOB.title);
         } else {
-          showInAppToast(data.error || 'Failed to submit application', 'error');
+          showInAppToast(data.error || 'Failed to open chat', 'error');
         }
-      } catch (e) {
-        showInAppToast('Network error submitting application', 'error');
+      } catch (err) {
+        showInAppToast('Network error opening chat', 'error');
       }
     }
 
     // In-App Chat Functions
-    function openInAppChat(appId, name, phone) {
+    async function openInAppChat(appId, name, jobTitle) {
       CURRENT_CHAT_APP_ID = appId;
-      document.getElementById('chatRecipientName').innerText = name || 'Hiring Team';
+      const nameEl = document.getElementById('chatRecipientName');
+      if (nameEl) nameEl.innerText = name || 'Hiring Team';
+      const badgeEl = document.getElementById('chatJobBadge');
+      if (badgeEl) badgeEl.innerText = jobTitle || 'Direct Hiring';
+
+      const avatarEl = document.getElementById('chatAvatarInitial');
+      if (avatarEl) {
+        avatarEl.innerText = (name || 'H').charAt(0).toUpperCase();
+      }
+
       openModal('inAppChatModal');
+
+      const container = document.getElementById('chatMessagesList');
+      if (container) {
+        container.innerHTML = '<div style="text-align: center; padding: 36px 16px; color: #78827D; font-size: 13px;">Loading conversation...</div>';
+      }
+
+      await loadChatMessages(appId);
+
+      if (window._chatPollTimer) clearInterval(window._chatPollTimer);
+      window._chatPollTimer = setInterval(() => {
+        const modal = document.getElementById('inAppChatModal');
+        if (modal && modal.classList.contains('active') && CURRENT_CHAT_APP_ID === appId) {
+          loadChatMessages(appId, true);
+        } else {
+          clearInterval(window._chatPollTimer);
+          window._chatPollTimer = null;
+        }
+      }, 3000);
     }
 
-    function sendChatMessage() {
+    async function loadChatMessages(appId, isPoll = false) {
+      if (!appId) return;
+      try {
+        const res = await fetch('/api/chat/' + appId + '/messages');
+        const data = await res.json();
+        const messages = data.messages || [];
+        const container = document.getElementById('chatMessagesList');
+        if (!container) return;
+
+        if (isPoll && container.dataset.msgCount === String(messages.length)) {
+          return;
+        }
+        container.dataset.msgCount = String(messages.length);
+
+        if (messages.length === 0) {
+          container.innerHTML = 
+            '<div style="text-align: center; padding: 40px 16px; color: #78827D;">' +
+              '<div style="font-size: 32px; margin-bottom: 8px;">👋</div>' +
+              '<div style="font-size: 14px; font-weight: 800; color: #17231D; margin-bottom: 4px;">Start the Conversation</div>' +
+              '<div style="font-size: 12px; line-height: 1.5; max-width: 280px; margin: 0 auto;">Ask about the job role, workplace timings, interview availability, or next steps.</div>' +
+            '</div>';
+          return;
+        }
+
+        const isEmployer = (typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'employer');
+        const myRole = isEmployer ? 'employer' : 'candidate';
+
+        let html = '';
+        for (const msg of messages) {
+          const timeStr = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          if (msg.sender_role === 'system' || msg.sender_type === 'system') {
+            html += '<div class="chat-system-pill">🔔 ' + escapeHtml(msg.message) + '</div>';
+          } else if (msg.sender_role === myRole) {
+            html += 
+              '<div class="chat-bubble chat-bubble-out">' +
+                '<div>' + escapeHtml(msg.message) + '</div>' +
+                '<div class="chat-bubble-time">' + timeStr + '</div>' +
+              '</div>';
+          } else {
+            html += 
+              '<div class="chat-bubble chat-bubble-in">' +
+                '<div style="font-size: 11px; font-weight: 700; color: #006B3C; margin-bottom: 2px;">' + escapeHtml(msg.sender_name || 'Hiring Team') + '</div>' +
+                '<div>' + escapeHtml(msg.message) + '</div>' +
+                '<div class="chat-bubble-time">' + timeStr + '</div>' +
+              '</div>';
+          }
+        }
+
+        container.innerHTML = html;
+        container.scrollTop = container.scrollHeight;
+      } catch (err) {
+        console.error('Error loading chat messages:', err);
+      }
+    }
+
+    async function sendChatMessage() {
       const input = document.getElementById('chatMessageInput');
+      if (!input || !CURRENT_CHAT_APP_ID) return;
       const text = input.value.trim();
       if (!text) return;
 
       const container = document.getElementById('chatMessagesList');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Optimistic append
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble chat-bubble-out';
-      bubble.innerHTML = '<div>' + escapeHtml(text) + '</div><div style="font-size: 10px; color: #D1FAE5; margin-top: 4px; text-align: right;">Just now</div>';
+      bubble.innerHTML = '<div>' + escapeHtml(text) + '</div><div class="chat-bubble-time">' + timeStr + '</div>';
       container.appendChild(bubble);
       input.value = '';
       container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat/' + CURRENT_CHAT_APP_ID + '/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        if (!data.success) {
+          showInAppToast(data.error || 'Failed to send message', 'error');
+        } else {
+          container.dataset.msgCount = String(Number(container.dataset.msgCount || 0) + 1);
+        }
+      } catch (e) {
+        showInAppToast('Network error sending message', 'error');
+      }
+    }
+
+    function applyChatQuickSuggestion(suggestionText) {
+      const input = document.getElementById('chatMessageInput');
+      if (input) {
+        input.value = suggestionText;
+        input.focus();
+      }
     }
 
     // Employer Job Post Handling
