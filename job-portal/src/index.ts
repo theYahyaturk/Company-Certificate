@@ -1227,16 +1227,25 @@ export default {
         if (session.active_role === 'job_seeker') {
           const { results: convos } = await env.DB.prepare(`
             SELECT 
-              a.id as application_id, a.job_id, a.status, a.created_at as applied_at,
-              j.title as job_title, 
-              COALESCE(j.company_name, j.company, 'Alifeo Partner') as other_party_name,
-              j.company_logo as other_party_logo,
-              j.employer_phone as other_party_phone,
+              a.id as id,
+              a.id as application_id,
+              a.job_id,
+              a.status,
+              a.created_at as applied_at,
+              COALESCE(j.title, a.job_title, 'UI/UX') as job_title, 
+              COALESCE(j.company_name, j.company, a.company, 'Alifeo') as other_party_name,
+              COALESCE(j.company_name, j.company, a.company, 'Alifeo') as other_name,
+              COALESCE(j.company_name, j.company, a.company, 'Alifeo') as company_name,
+              COALESCE(j.company_logo, '') as other_party_logo,
+              COALESCE(j.company_logo, '') as company_logo,
+              COALESCE(j.employer_phone, '') as other_party_phone,
+              COALESCE(j.employer_phone, '') as other_phone,
               (SELECT message FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message,
               (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+              (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_time,
               (SELECT COUNT(*) FROM chat_messages WHERE application_id = a.id AND sender_role = 'employer' AND is_read = 0) as unread_count
             FROM job_applications a
-            JOIN jobs j ON a.job_id = j.id
+            LEFT JOIN jobs j ON a.job_id = j.id
             WHERE a.candidate_phone = ?
             ORDER BY COALESCE(last_message_time, a.created_at) DESC
           `).bind(session.phone).all();
@@ -1245,16 +1254,25 @@ export default {
         } else {
           const { results: convos } = await env.DB.prepare(`
             SELECT 
-              a.id as application_id, a.job_id, a.status, a.created_at as applied_at,
-              j.title as job_title,
+              a.id as id,
+              a.id as application_id,
+              a.job_id,
+              a.status,
+              a.created_at as applied_at,
+              COALESCE(j.title, a.job_title, 'Job Opening') as job_title,
               COALESCE(a.candidate_name, 'Candidate') as other_party_name,
-              p.photo_url as other_party_logo,
+              COALESCE(a.candidate_name, 'Candidate') as other_name,
+              COALESCE(a.candidate_name, 'Candidate') as company_name,
+              COALESCE(p.photo_url, '') as other_party_logo,
+              COALESCE(p.photo_url, '') as company_logo,
               a.candidate_phone as other_party_phone,
+              a.candidate_phone as other_phone,
               (SELECT message FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message,
               (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_message_time,
+              (SELECT created_at FROM chat_messages WHERE application_id = a.id ORDER BY created_at DESC LIMIT 1) as last_time,
               (SELECT COUNT(*) FROM chat_messages WHERE application_id = a.id AND sender_role = 'candidate' AND is_read = 0) as unread_count
             FROM job_applications a
-            JOIN jobs j ON a.job_id = j.id
+            LEFT JOIN jobs j ON a.job_id = j.id
             LEFT JOIN job_seeker_profiles p ON a.candidate_phone = p.phone
             WHERE j.employer_phone = ?
             ORDER BY COALESCE(last_message_time, a.created_at) DESC
@@ -1307,6 +1325,13 @@ export default {
             return new Response(JSON.stringify({ success: true, messages: [] }), { headers: corsHeaders });
           }
 
+          if (session) {
+            const incomingRole = session.active_role === 'employer' ? 'candidate' : 'employer';
+            await env.DB.prepare(
+              'UPDATE chat_messages SET is_read = 1 WHERE application_id = ? AND sender_role = ? AND is_read = 0'
+            ).bind(appId, incomingRole).run();
+          }
+
           const { results: messages } = await env.DB.prepare(
             'SELECT * FROM chat_messages WHERE application_id = ? ORDER BY created_at ASC'
           ).bind(appId).all<ChatMessage>();
@@ -1337,11 +1362,11 @@ export default {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
           `).bind(
             msgId, 'CONV-' + appId, appId, session.phone, senderRole, senderRole,
-            session.name || (senderRole === 'employer' ? 'Recruiter' : 'Candidate'),
+            session.name || (senderRole === 'employer' ? 'Alifeo Recruiter' : 'Candidate'),
             message, Date.now()
           ).run();
 
-          return new Response(JSON.stringify({ success: true, id: msgId }), { headers: corsHeaders });
+          return new Response(JSON.stringify({ success: true, id: msgId, message: { id: msgId, application_id: appId, message, created_at: Date.now(), sender_role: senderRole, sender_phone: session.phone } }), { headers: corsHeaders });
         }
       }
 

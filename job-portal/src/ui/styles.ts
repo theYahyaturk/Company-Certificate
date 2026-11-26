@@ -1188,44 +1188,52 @@ export const JOB_PORTAL_STYLES = `
   /* Dedicated Messages / Inbox Layout */
   .inbox-container {
     display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 16px;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
     background: #FFFFFF;
     border: 1px solid var(--border-color);
     border-radius: 20px;
     overflow: hidden;
-    height: 72vh;
+    height: 74vh;
     box-shadow: var(--shadow-soft);
     margin-bottom: 30px;
   }
   @media (max-width: 768px) {
     .inbox-container {
       grid-template-columns: 1fr;
-      height: 76vh;
+      height: 80vh;
     }
   }
   .inbox-conversations-sidebar {
     border-right: 1px solid var(--border-color);
     overflow-y: auto;
     background: #FFFFFF;
+    display: flex;
+    flex-direction: column;
   }
   .convo-item {
-    padding: 14px 16px;
+    padding: 12px 14px;
     border-bottom: 1px solid #F1F5F9;
     cursor: pointer;
     display: flex;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    transition: background 0.15s ease;
+    transition: all 0.15s ease;
+    border-left: 3px solid transparent;
   }
-  .convo-item:hover, .convo-item.active {
+  .convo-item:hover {
     background: #F8FAF7;
+  }
+  .convo-item.active {
+    background: #F0FDF4;
+    border-left: 3px solid #004D35;
   }
   .inbox-chat-pane {
     display: flex;
     flex-direction: column;
     height: 100%;
     background: #F8FAF7;
+    position: relative;
   }
 
   /* Form 2-Column Responsive Layout */

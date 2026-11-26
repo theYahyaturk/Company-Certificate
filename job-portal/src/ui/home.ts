@@ -701,7 +701,7 @@ export function renderJobPortalPage(
                     Applied on: <strong>${new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
                   </div>
                   <div style="display: flex; gap: 8px;">
-                    <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 12px;" onclick="openInAppChat('${app.id}', '${escapeHtml(app.company_name || 'Hiring Team')}', '${app.employer_phone || ''}')">
+                    <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 12px;" onclick="openInAppChat('${app.id}', '${escapeHtml(app.company_name || 'Alifeo')}', '${escapeHtml(app.job_title || 'UI/UX')}', '${app.company_logo || ''}')">
                       💬 In-App Chat
                     </button>
                     ${app.status !== 'withdrawn' && app.status !== 'rejected' ? `
@@ -751,24 +751,47 @@ export function renderJobPortalPage(
           </div>
 
           <div class="inbox-chat-pane">
-            <div class="chat-header" id="inboxChatHeader" style="border-radius: 0;">
-              <div class="chat-header-user">
-                <div>
-                  <div style="font-size: 15px; font-weight: 800; color: #17231D;" id="inboxRecipientName">Select a Conversation</div>
-                  <div style="font-size: 11px; color: #78827D;" id="inboxRecipientSub">Where is My Job Direct Chat</div>
+            <div class="chat-header" id="inboxChatHeader" style="border-radius: 0; padding: 12px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #FFFFFF;">
+              <div class="chat-header-user" style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                <div style="position: relative; flex-shrink: 0;">
+                  <div class="chat-avatar-icon" id="inboxHeaderAvatar" style="width: 44px; height: 44px; border-radius: 12px; font-size: 18px; font-weight: 800; background: #004D35; color: #CFF92D; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1.5px solid #E2E8F0;">
+                    <span id="inboxHeaderAvatarInitial">A</span>
+                    <img id="inboxHeaderAvatarImg" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                  </div>
+                  <span id="inboxHeaderOnlineDot" style="position: absolute; bottom: -1px; right: -1px; width: 11px; height: 11px; background: #10B981; border: 2px solid #FFFFFF; border-radius: 50%;"></span>
                 </div>
+                <div style="min-width: 0;">
+                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                    <span style="font-size: 15px; font-weight: 800; color: #17231D;" id="inboxRecipientName">Select a Conversation</span>
+                    <span id="inboxVerifiedBadge" style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; background: #ECFDF5; color: #006B3C; border: 1px solid #A7F3D0; padding: 1px 7px; border-radius: 100px;">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                      Verified
+                    </span>
+                  </div>
+                  <div style="font-size: 11px; color: #78827D; margin-top: 1px;" id="inboxRecipientSub">Where is My Job Direct Chat</div>
+                </div>
+              </div>
+              <div id="inboxHeaderActions" style="display: none; align-items: center; gap: 8px;">
+                <button type="button" class="nav-link-btn" id="inboxViewJobBtn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                  <span>💼 View Job</span>
+                </button>
               </div>
             </div>
 
-            <div class="chat-messages-body" id="inboxMessagesBody" style="flex: 1; overflow-y: auto;">
+            <div class="chat-messages-body" id="inboxMessagesBody" style="flex: 1; overflow-y: auto; padding: 16px; background: #F8FAF7; display: flex; flex-direction: column; gap: 10px;">
               <div style="text-align: center; padding: 48px 16px; color: #94A3B8; font-size: 13px;">
                 Select a recruiter or applicant conversation on the left to view messages.
               </div>
             </div>
 
-            <div class="chat-input-bar" id="inboxInputBar" style="display: none;">
-              <input type="text" id="inboxMessageInput" class="chat-input-field" placeholder="Type your response..." onkeypress="if(event.key === 'Enter') sendInboxMessage()">
-              <button class="chat-send-btn" onclick="sendInboxMessage()">&rarr;</button>
+            <div class="chat-input-bar" id="inboxInputBar" style="display: none; padding: 12px 18px; background: #FFFFFF; border-top: 1px solid var(--border-color); gap: 10px; align-items: center;">
+              <input type="text" id="inboxMessageInput" class="chat-input-field" placeholder="Type your response to employer..." onkeypress="if(event.key === 'Enter') sendInboxMessage()" style="flex: 1; padding: 12px 18px; border-radius: 100px; border: 1.5px solid #E2E8F0; font-size: 13px; font-family: inherit; outline: none; background: #F8FAF7;">
+              <button type="button" class="chat-send-btn" id="inboxSendBtn" onclick="sendInboxMessage()" title="Send Message" style="width: 44px; height: 44px; border-radius: 50%; background: #004D35; border: none; color: #CFF92D; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; flex-shrink: 0;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
@@ -959,8 +982,9 @@ export function renderJobPortalPage(
       <div class="chat-header">
         <div class="chat-header-user">
           <button type="button" class="chat-back-btn" onclick="closeModal('inAppChatModal')" title="Back">&larr;</button>
-          <div class="chat-avatar-icon">
+          <div class="chat-avatar-icon" id="chatAvatarContainer">
             <span id="chatAvatarInitial">H</span>
+            <img id="chatAvatarImg" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
           </div>
           <div style="min-width: 0;">
             <div style="font-size: 14px; font-weight: 800; color: #17231D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="chatRecipientName">Hiring Team</div>
@@ -1986,6 +2010,73 @@ export function renderJobPortalPage(
     let ACTIVE_CONVERSATION_ID = null;
     let INBOX_CONVERSATIONS_DATA = [];
 
+    function handleLogoError(img) {
+      if (!img) return;
+      img.style.display = 'none';
+      if (img.parentElement) {
+        img.parentElement.innerText = img.dataset.initial || 'A';
+      }
+    }
+
+    function formatChatTime(ts) {
+      if (!ts) return '';
+      try {
+        const d = new Date(ts);
+        const now = new Date();
+        if (d.toDateString() === now.toDateString()) {
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function renderInboxConversationList() {
+      const container = document.getElementById('inboxConversationList');
+      if (!container) return;
+
+      if (!INBOX_CONVERSATIONS_DATA || INBOX_CONVERSATIONS_DATA.length === 0) {
+        container.innerHTML = '<div style="padding: 32px 16px; text-align: center; color: #78827D; font-size: 12px; line-height: 1.5;">No active conversations yet.<br>Submit an application or click Chat on any job opening!</div>';
+        return;
+      }
+
+      container.innerHTML = INBOX_CONVERSATIONS_DATA.map(function(c, idx) {
+        const appId = c.application_id || c.id;
+        const companyName = c.company_name || c.other_party_name || c.other_name || 'Alifeo';
+        const roleName = c.job_title || 'UI/UX';
+        const logo = c.company_logo || c.other_party_logo || '';
+        const initial = (companyName || 'A').charAt(0).toUpperCase();
+        const timeStr = formatChatTime(c.last_time || c.last_message_time);
+        const isSelected = (appId === ACTIVE_CONVERSATION_ID);
+        const unread = Number(c.unread_count || 0);
+
+        return (
+          '<div class="convo-item ' + (isSelected ? 'active' : '') + '" onclick="selectInboxConversationIndex(' + idx + ')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-bottom: 1px solid #F1F5F9; cursor: pointer; transition: background 0.15s ease; border-left: ' + (isSelected ? '4px solid #004D35' : '4px solid transparent') + '; background: ' + (isSelected ? '#F0FDF4' : '#FFFFFF') + ';">' +
+            '<div style="position: relative; flex-shrink: 0;">' +
+              '<div style="width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #004D35; color: #CFF92D; font-weight: 800; font-size: 16px; border: 1.5px solid #E2E8F0;">' +
+                (logo ? '<img src="' + escapeHtml(logo) + '" style="width: 100%; height: 100%; object-fit: cover;" onerror="handleLogoError(this)" data-initial="' + initial + '">' : initial) +
+              '</div>' +
+              '<span style="position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; background: #10B981; border: 2px solid #FFFFFF; border-radius: 50%;"></span>' +
+            '</div>' +
+            '<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">' +
+              '<div style="display: flex; justify-content: space-between; align-items: center;">' +
+                '<span style="font-size: 13px; font-weight: 800; color: #17231D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">' + escapeHtml(companyName) + '</span>' +
+                '<span style="font-size: 10px; color: #94A3B8; font-weight: 600;">' + timeStr + '</span>' +
+              '</div>' +
+              '<div style="display: flex; align-items: center; gap: 4px;">' +
+                '<span style="font-size: 11px; font-weight: 700; color: #006B3C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;">' + escapeHtml(roleName) + '</span>' +
+              '</div>' +
+              '<div style="font-size: 11px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px;">' +
+                escapeHtml(c.last_message || 'Application submitted') +
+              '</div>' +
+            '</div>' +
+            (unread > 0 ? '<div style="background: #10B981; color: #FFFFFF; font-size: 10px; font-weight: 800; min-width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; padding: 0 4px; flex-shrink: 0;">' + unread + '</div>' : '') +
+          '</div>'
+        );
+      }).join('');
+    }
+
     async function loadInboxConversations() {
       const container = document.getElementById('inboxConversationList');
       if (!container) return;
@@ -1994,21 +2085,13 @@ export function renderJobPortalPage(
         const data = await res.json();
         if (data.success && data.conversations && data.conversations.length > 0) {
           INBOX_CONVERSATIONS_DATA = data.conversations;
-          container.innerHTML = data.conversations.map((c, idx) => (
-            '<div class="convo-item ' + (c.id === ACTIVE_CONVERSATION_ID ? 'active' : '') + '" onclick="selectInboxConversationIndex(' + idx + ')">' +
-              '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">' +
-                '<div style="font-size: 13px; font-weight: 800; color: #17231D;">' + escapeHtml(c.other_name) + '</div>' +
-                '<div style="font-size: 10px; color: #78827D;">' + (c.last_time ? new Date(c.last_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '') + '</div>' +
-              '</div>' +
-              '<div style="font-size: 11px; font-weight: 700; color: #006B3C;">' + escapeHtml(c.job_title) + '</div>' +
-              '<div style="font-size: 11px; color: #64748B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">' + escapeHtml(c.last_message || 'Application opened') + '</div>' +
-            '</div>'
-          )).join('');
+          renderInboxConversationList();
           if (!ACTIVE_CONVERSATION_ID && data.conversations[0]) {
             selectInboxConversationIndex(0);
           }
         } else {
-          container.innerHTML = '<div style="padding: 24px 16px; text-align: center; color: #78827D; font-size: 12px;">No active conversations yet. Submit an application or chat with an employer to start!</div>';
+          INBOX_CONVERSATIONS_DATA = [];
+          renderInboxConversationList();
         }
       } catch (e) {
         container.innerHTML = '<div style="padding: 24px; text-align: center; color: #E54848; font-size: 12px;">Failed to load conversations.</div>';
@@ -2018,33 +2101,75 @@ export function renderJobPortalPage(
     function selectInboxConversationIndex(idx) {
       const c = INBOX_CONVERSATIONS_DATA[idx];
       if (!c) return;
-      openInboxConversation(c.id, c.other_name, c.other_phone, c.job_title);
+      const appId = c.application_id || c.id;
+      const companyName = c.company_name || c.other_party_name || c.other_name || 'Alifeo';
+      const logo = c.company_logo || c.other_party_logo || '';
+      const jobTitle = c.job_title || 'UI/UX';
+      const jobId = c.job_id || '';
+      openInboxConversation(appId, companyName, logo, jobTitle, jobId);
     }
 
-    async function openInboxConversation(convoId, otherName, otherPhone, jobTitle) {
+    async function openInboxConversation(convoId, otherName, logo, jobTitle, jobId) {
+      if (!convoId) return;
       ACTIVE_CONVERSATION_ID = convoId;
-      document.getElementById('inboxRecipientName').innerText = otherName || 'Direct Hiring';
-      document.getElementById('inboxRecipientSub').innerText = (jobTitle ? jobTitle + ' • ' : '') + 'Where is My Job Chat';
-      document.getElementById('inboxInputBar').style.display = 'flex';
 
+      // Update Header
+      const nameEl = document.getElementById('inboxRecipientName');
+      if (nameEl) nameEl.innerText = otherName || 'Alifeo';
+
+      const subEl = document.getElementById('inboxRecipientSub');
+      if (subEl) subEl.innerText = (jobTitle ? jobTitle + ' • ' : '') + 'Where is My Job Chat • 🟢 Online';
+
+      const initialEl = document.getElementById('inboxHeaderAvatarInitial');
+      const imgEl = document.getElementById('inboxHeaderAvatarImg');
+      if (logo && imgEl) {
+        imgEl.src = logo;
+        imgEl.style.display = 'block';
+        if (initialEl) initialEl.style.display = 'none';
+      } else {
+        if (imgEl) imgEl.style.display = 'none';
+        if (initialEl) {
+          initialEl.innerText = (otherName || 'A').charAt(0).toUpperCase();
+          initialEl.style.display = 'block';
+        }
+      }
+
+      const actionsEl = document.getElementById('inboxHeaderActions');
+      const viewJobBtn = document.getElementById('inboxViewJobBtn');
+      if (actionsEl && viewJobBtn) {
+        actionsEl.style.display = 'flex';
+        viewJobBtn.onclick = function() {
+          if (jobId) openJobModal(jobId);
+          else showInAppToast('Job opening linked to application', 'info');
+        };
+      }
+
+      const inputBar = document.getElementById('inboxInputBar');
+      if (inputBar) inputBar.style.display = 'flex';
+
+      // Update sidebar active highlight
+      renderInboxConversationList();
+
+      // Load conversation messages
       await loadInboxMessages(convoId, jobTitle, false);
 
+      // Start real-time polling (every 2.5s)
       if (window._inboxPollTimer) clearInterval(window._inboxPollTimer);
       window._inboxPollTimer = setInterval(function() {
-        if (ACTIVE_CONVERSATION_ID === convoId && ACTIVE_VIEW === 'inbox-view') {
+        if (ACTIVE_CONVERSATION_ID === convoId && ACTIVE_VIEW === 'messages-inbox') {
           loadInboxMessages(convoId, jobTitle, true);
         } else {
           clearInterval(window._inboxPollTimer);
           window._inboxPollTimer = null;
         }
-      }, 3500);
+      }, 2500);
     }
 
     async function loadInboxMessages(convoId, jobTitle, isPoll) {
       const body = document.getElementById('inboxMessagesBody');
       if (!body) return;
       if (!isPoll) {
-        body.innerHTML = '<div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>';
+        body.innerHTML = '<div style="padding: 32px; text-align: center; color: #78827D; font-size: 13px;">Loading conversation...</div>';
       }
 
       try {
@@ -2058,19 +2183,49 @@ export function renderJobPortalPage(
         body.dataset.msgCount = String(messages.length);
 
         if (messages.length === 0) {
-          body.innerHTML = '<div style="padding: 32px; text-align: center; color: #94A3B8; font-size: 12px;">This is the beginning of your conversation regarding ' + escapeHtml(jobTitle || 'this job opening') + '.</div>';
+          const compName = document.getElementById('inboxRecipientName')?.innerText || 'Hiring Team';
+          body.innerHTML = 
+            '<div style="text-align: center; padding: 48px 16px; color: #78827D;">' +
+              '<div style="font-size: 36px; margin-bottom: 8px;">💼</div>' +
+              '<div style="font-size: 15px; font-weight: 800; color: #17231D; margin-bottom: 4px;">Direct Conversation with ' + escapeHtml(compName) + '</div>' +
+              '<div style="font-size: 12px; color: #64748B; max-width: 320px; margin: 0 auto; line-height: 1.5;">This direct channel connects you with the hiring team for ' + escapeHtml(jobTitle || 'this role') + '. Ask about role expectations, timings, or interview schedules.</div>' +
+            '</div>';
         } else {
-          body.innerHTML = messages.map(function(m) {
-            const isOut = m.sender_phone === '${userPhone}';
-            return (
-              '<div class="chat-bubble ' + (isOut ? 'chat-bubble-out' : 'chat-bubble-in') + '">' +
-                '<div>' + escapeHtml(m.message) + '</div>' +
-                '<div style="font-size: 9px; color: ' + (isOut ? '#D1FAE5' : '#94A3B8') + '; margin-top: 4px; text-align: right;">' +
-                  new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) +
-                '</div>' +
-              '</div>'
-            );
-          }).join('');
+          const isEmployer = (typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'employer');
+          const myRole = isEmployer ? 'employer' : 'candidate';
+          const myPhone = '${userPhone}';
+
+          let html = '';
+          for (const m of messages) {
+            const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            if (m.sender_role === 'system' || m.sender_type === 'system') {
+              html += '<div class="chat-system-pill" style="align-self: center; background: #E8ECE8; color: #17231D; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 100px; text-align: center; margin: 6px 0;">🔔 ' + escapeHtml(m.message) + '</div>';
+            } else {
+              const isOut = (m.sender_role === myRole || (myPhone && m.sender_phone === myPhone));
+              if (isOut) {
+                html += 
+                  '<div class="chat-bubble chat-bubble-out" style="align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">' +
+                    '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
+                    '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; color: #A7F3D0; margin-top: 4px;">' +
+                      '<span>' + timeStr + '</span>' +
+                      '<span style="font-weight: 800; font-size: 11px;">✓✓</span>' +
+                    '</div>' +
+                  '</div>';
+              } else {
+                const senderName = m.sender_name || (m.sender_role === 'employer' ? 'Alifeo Recruiter' : 'Candidate');
+                html += 
+                  '<div class="chat-bubble chat-bubble-in" style="align-self: flex-start; background: #FFFFFF; color: #17231D; border: 1px solid #E2E8F0; border-radius: 16px 16px 16px 4px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">' +
+                    '<div style="font-size: 11px; font-weight: 800; color: #006B3C; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">' +
+                      '<span>' + escapeHtml(senderName) + '</span>' +
+                      '<span style="font-size: 9px; background: #ECFDF5; color: #006B3C; padding: 1px 5px; border-radius: 6px; font-weight: 700;">Recruiter</span>' +
+                    '</div>' +
+                    '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
+                    '<div style="font-size: 9px; color: #94A3B8; margin-top: 4px; text-align: right;">' + timeStr + '</div>' +
+                  '</div>';
+              }
+            }
+          }
+          body.innerHTML = html;
           body.scrollTop = body.scrollHeight;
         }
       } catch (e) {
@@ -2082,19 +2237,29 @@ export function renderJobPortalPage(
 
     async function sendInboxMessage() {
       const input = document.getElementById('inboxMessageInput');
+      if (!input) return;
       const text = input.value.trim();
       if (!text || !ACTIVE_CONVERSATION_ID) return;
 
       const body = document.getElementById('inboxMessagesBody');
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      // Optimistic append
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble chat-bubble-out';
-      bubble.innerHTML = '<div>' + escapeHtml(text) + '</div><div style="font-size: 9px; color: #D1FAE5; margin-top: 4px; text-align: right;">Just now</div>';
+      bubble.style.cssText = 'align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);';
+      bubble.innerHTML = 
+        '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(text) + '</div>' +
+        '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; color: #A7F3D0; margin-top: 4px;">' +
+          '<span>' + timeStr + '</span>' +
+          '<span style="font-weight: 800; font-size: 11px;">✓</span>' +
+        '</div>';
       body.appendChild(bubble);
       input.value = '';
       body.scrollTop = body.scrollHeight;
 
       try {
-        await fetch('/api/chat/' + encodeURIComponent(ACTIVE_CONVERSATION_ID) + '/messages', {
+        const res = await fetch('/api/chat/' + encodeURIComponent(ACTIVE_CONVERSATION_ID) + '/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -2102,7 +2267,13 @@ export function renderJobPortalPage(
             message: text
           })
         });
-      } catch (e) {}
+        const resData = await res.json();
+        if (resData.success) {
+          loadInboxConversations();
+        }
+      } catch (e) {
+        showInAppToast('Network issue sending message', 'error');
+      }
     }
 
     async function updateApplicantStatus(appId, newStatus) {
@@ -2454,16 +2625,25 @@ export function renderJobPortalPage(
     }
 
     // In-App Chat Functions
-    async function openInAppChat(appId, name, jobTitle) {
+    async function openInAppChat(appId, name, jobTitle, logo) {
       CURRENT_CHAT_APP_ID = appId;
       const nameEl = document.getElementById('chatRecipientName');
-      if (nameEl) nameEl.innerText = name || 'Hiring Team';
+      if (nameEl) nameEl.innerText = name || 'Alifeo';
       const badgeEl = document.getElementById('chatJobBadge');
       if (badgeEl) badgeEl.innerText = jobTitle || 'Direct Hiring';
 
       const avatarEl = document.getElementById('chatAvatarInitial');
-      if (avatarEl) {
-        avatarEl.innerText = (name || 'H').charAt(0).toUpperCase();
+      const avatarImg = document.getElementById('chatAvatarImg');
+      if (logo && avatarImg) {
+        avatarImg.src = logo;
+        avatarImg.style.display = 'block';
+        if (avatarEl) avatarEl.style.display = 'none';
+      } else {
+        if (avatarImg) avatarImg.style.display = 'none';
+        if (avatarEl) {
+          avatarEl.innerText = (name || 'A').charAt(0).toUpperCase();
+          avatarEl.style.display = 'block';
+        }
       }
 
       openModal('inAppChatModal');
@@ -2484,7 +2664,7 @@ export function renderJobPortalPage(
           clearInterval(window._chatPollTimer);
           window._chatPollTimer = null;
         }
-      }, 3000);
+      }, 2500);
     }
 
     async function loadChatMessages(appId, isPoll = false) {
