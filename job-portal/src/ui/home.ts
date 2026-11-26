@@ -752,7 +752,8 @@ export function renderJobPortalPage(
 
           <div class="inbox-chat-pane">
             <div class="chat-header" id="inboxChatHeader" style="border-radius: 0; padding: 12px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #FFFFFF;">
-              <div class="chat-header-user" style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+              <div class="chat-header-user" style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <button type="button" class="chat-back-btn mobile-chat-back-btn" onclick="backToConversationList()" title="Back to conversations">&larr;</button>
                 <div style="position: relative; flex-shrink: 0;">
                   <div class="chat-avatar-icon" id="inboxHeaderAvatar" style="width: 44px; height: 44px; border-radius: 12px; font-size: 18px; font-weight: 800; background: #004D35; color: #CFF92D; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1.5px solid #E2E8F0;">
                     <span id="inboxHeaderAvatarInitial">A</span>
@@ -1747,7 +1748,8 @@ export function renderJobPortalPage(
       if (viewId === 'candidate-home') {
         document.getElementById('navDesktopHome')?.classList.add('active');
         document.getElementById('mTabMap')?.classList.add('active');
-        setTimeout(() => { if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize(); }, 200);
+        setTimeout(() => { if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize(); }, 150);
+        setTimeout(() => { if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize(); }, 450);
       } else if (viewId === 'remote-jobs') {
         document.getElementById('navDesktopRemote')?.classList.add('active');
         document.getElementById('mTabRemote')?.classList.add('active');
@@ -1760,6 +1762,7 @@ export function renderJobPortalPage(
       } else if (viewId === 'messages-inbox') {
         document.getElementById('navDesktopMessages')?.classList.add('active');
         document.getElementById('mTabChat')?.classList.add('active');
+        backToConversationList();
         loadInboxConversations();
       } else if (viewId === 'employer-dashboard') {
         document.getElementById('mTabEmp')?.classList.add('active');
@@ -2086,7 +2089,7 @@ export function renderJobPortalPage(
         if (data.success && data.conversations && data.conversations.length > 0) {
           INBOX_CONVERSATIONS_DATA = data.conversations;
           renderInboxConversationList();
-          if (!ACTIVE_CONVERSATION_ID && data.conversations[0]) {
+          if (!ACTIVE_CONVERSATION_ID && data.conversations[0] && window.innerWidth > 768) {
             selectInboxConversationIndex(0);
           }
         } else {
@@ -2109,9 +2112,23 @@ export function renderJobPortalPage(
       openInboxConversation(appId, companyName, logo, jobTitle, jobId);
     }
 
+    function backToConversationList() {
+      document.querySelector('.inbox-container')?.classList.remove('mobile-chat-open');
+      document.body.classList.remove('inbox-chat-active');
+      if (window._inboxPollTimer) {
+        clearInterval(window._inboxPollTimer);
+        window._inboxPollTimer = null;
+      }
+    }
+
     async function openInboxConversation(convoId, otherName, logo, jobTitle, jobId) {
       if (!convoId) return;
       ACTIVE_CONVERSATION_ID = convoId;
+
+      if (window.innerWidth <= 768) {
+        document.querySelector('.inbox-container')?.classList.add('mobile-chat-open');
+        document.body.classList.add('inbox-chat-active');
+      }
 
       // Update Header
       const nameEl = document.getElementById('inboxRecipientName');
@@ -2139,7 +2156,7 @@ export function renderJobPortalPage(
       if (actionsEl && viewJobBtn) {
         actionsEl.style.display = 'flex';
         viewJobBtn.onclick = function() {
-          if (jobId) openJobModal(jobId);
+          if (jobId) openJobDetailModal(jobId);
           else showInAppToast('Job opening linked to application', 'info');
         };
       }
@@ -2336,9 +2353,9 @@ export function renderJobPortalPage(
         attributionControl: false
       });
 
-      STREET_LAYER = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      STREET_LAYER = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         maxZoom: 19,
-        subdomains: ['a', 'b', 'c']
+        subdomains: 'abcd'
       });
 
       SATELLITE_LAYER = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -2350,9 +2367,21 @@ export function renderJobPortalPage(
       MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
       drawUserPin(USER_COORDS.lat, USER_COORDS.lng);
       drawCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+
+      if (window.ResizeObserver) {
+        new ResizeObserver(() => {
+          if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
+        }).observe(container);
+      }
+      window.addEventListener('resize', () => {
+        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
+      });
       setTimeout(() => {
         if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      }, 300);
+      }, 200);
+      setTimeout(() => {
+        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
+      }, 600);
     }
 
     function setMapLayer(type) {
@@ -2598,6 +2627,42 @@ export function renderJobPortalPage(
       submitDirectApplication(SELECTED_JOB.id);
     }
 
+    async function submitDirectApplication(jobId) {
+      if (!SELECTED_JOB && !jobId) return;
+      const targetJobId = jobId || SELECTED_JOB?.id;
+      if (!IS_LOGGED_IN) {
+        closeModal('jobDetailModal');
+        goToOnboardingStep('stepChooseRole');
+        return;
+      }
+      showInAppToast('Submitting 1-Click Application...', 'info');
+      try {
+        const res = await fetch('/api/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ job_id: targetJobId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeModal('jobDetailModal');
+          showInAppToast('🎉 Application submitted successfully!', 'success');
+          setTimeout(() => switchView('my-applications'), 800);
+        } else {
+          showInAppToast(data.error || 'Failed to submit application', 'error');
+        }
+      } catch (e) {
+        showInAppToast('Network error submitting application', 'error');
+      }
+    }
+
+    function viewJobApplicants(jobId) {
+      switchView('employer-dashboard');
+      setTimeout(() => {
+        const el = document.querySelector('#view-employer-dashboard div[style*="Recent Applicants"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+
     async function openSelectedJobChat() {
       if (!SELECTED_JOB) return;
       if (!IS_LOGGED_IN) {
@@ -2615,7 +2680,7 @@ export function renderJobPortalPage(
         });
         const data = await res.json();
         if (data.success && data.application_id) {
-          openInAppChat(data.application_id, SELECTED_JOB.company_name, SELECTED_JOB.title);
+          openInAppChat(data.application_id, SELECTED_JOB.company_name, SELECTED_JOB.title, SELECTED_JOB.company_logo || '');
         } else {
           showInAppToast(data.error || 'Failed to open chat', 'error');
         }

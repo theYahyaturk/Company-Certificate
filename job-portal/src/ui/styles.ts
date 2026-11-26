@@ -187,6 +187,11 @@ export const JOB_PORTAL_STYLES = `
     display: flex;
     animation: fadeInScreen 0.2s ease-out;
   }
+  @media (max-width: 768px) {
+    .screen-view {
+      padding-bottom: 90px; /* Essential safe-area so mobile bottom nav never blocks content */
+    }
+  }
   @keyframes fadeInScreen {
     from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: translateY(0); }
@@ -226,6 +231,36 @@ export const JOB_PORTAL_STYLES = `
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+  }
+  @media (max-width: 640px) {
+    .search-location-panel {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      padding: 10px 12px;
+    }
+    .loc-badge-wrap {
+      width: 100%;
+      justify-content: space-between;
+      border-bottom: 1px solid #F1F5F9;
+      padding-bottom: 6px;
+    }
+    .search-input-box {
+      width: 100%;
+      min-width: 0;
+    }
+    .radius-selector-row {
+      width: 100%;
+      overflow-x: auto;
+      white-space: nowrap;
+      padding: 2px 0;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      gap: 6px;
+    }
+    .radius-selector-row::-webkit-scrollbar {
+      display: none;
+    }
   }
   .loc-badge-wrap {
     display: flex;
@@ -689,6 +724,23 @@ export const JOB_PORTAL_STYLES = `
     animation: zoomModalIn 0.2s ease-out;
     position: relative;
   }
+  @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 0;
+      align-items: flex-end;
+    }
+    .modal-card {
+      max-height: 90vh;
+      border-radius: 24px 24px 0 0;
+      padding: 20px 16px 32px 16px;
+      animation: slideUpModal 0.25s ease-out;
+      -webkit-overflow-scrolling: touch;
+    }
+    @keyframes slideUpModal {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+  }
   @keyframes zoomModalIn {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
@@ -823,8 +875,10 @@ export const JOB_PORTAL_STYLES = `
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    padding: 20px;
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 24px 16px;
   }
 
   /* Step 1: Splash Screen */
@@ -972,6 +1026,7 @@ export const JOB_PORTAL_STYLES = `
   .profile-setup-card {
     width: 100%;
     max-width: 440px;
+    margin: auto 0;
     background: #FFFFFF;
     border: 1px solid var(--border-color);
     border-radius: 22px;
@@ -1200,8 +1255,59 @@ export const JOB_PORTAL_STYLES = `
   }
   @media (max-width: 768px) {
     .inbox-container {
-      grid-template-columns: 1fr;
-      height: 80vh;
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 145px);
+      min-height: 480px;
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .inbox-conversations-sidebar {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      border-right: none;
+    }
+    .inbox-chat-pane {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      background: #F8FAF7;
+      z-index: 50;
+      flex-direction: column;
+    }
+    .inbox-container.mobile-chat-open .inbox-conversations-sidebar {
+      display: none !important;
+    }
+    .inbox-container.mobile-chat-open .inbox-chat-pane {
+      display: flex !important;
+    }
+    body.inbox-chat-active .mobile-bottom-nav {
+      display: none !important;
+    }
+    .mobile-chat-back-btn {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #F1F5F9;
+      border: 1px solid var(--border-color);
+      font-size: 15px;
+      font-weight: 800;
+      color: #17231D;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-right: 4px;
+    }
+  }
+  @media (min-width: 769px) {
+    .mobile-chat-back-btn {
+      display: none !important;
     }
   }
   .inbox-conversations-sidebar {
@@ -1256,8 +1362,8 @@ export const JOB_PORTAL_STYLES = `
     .mobile-bottom-nav {
       position: fixed;
       bottom: 12px;
-      left: 14px;
-      right: 14px;
+      left: 10px;
+      right: 10px;
       background: #FFFFFF;
       border: 1px solid var(--border-color);
       border-radius: var(--radius-pill);
@@ -1265,22 +1371,32 @@ export const JOB_PORTAL_STYLES = `
       display: flex;
       align-items: center;
       justify-content: space-around;
-      padding: 5px 8px;
+      padding: 5px 6px;
       z-index: 1000;
     }
     .mobile-tab-btn {
+      flex: 1;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 2px;
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       color: var(--secondary-text);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 5px 12px;
+      padding: 5px 2px;
       border-radius: var(--radius-pill);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    .mobile-tab-btn svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
     }
     .mobile-tab-btn.active {
       background: var(--primary-lime);
