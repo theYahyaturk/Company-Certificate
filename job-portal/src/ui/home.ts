@@ -1509,7 +1509,8 @@ export function renderJobPortalPage(
 
       let detectedNameFromFile = '';
       try {
-        const cleanBase = file.name.replace(/\.[^/.]+$/, '').replace(/[_\-+()0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+        const baseName = (file.name || '').split('.')[0];
+        const cleanBase = baseName.replace(/[_()+0-9-]/g, ' ').replace(/\s+/g, ' ').trim();
         const nameMatch = cleanBase.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){1,2})/);
         if (nameMatch && !/^(resume|cv|my|final|updated|new|latest|document)/i.test(nameMatch[1])) {
           detectedNameFromFile = nameMatch[1].trim();
@@ -2752,27 +2753,6 @@ export function renderJobPortalPage(
       closeModal('jobDetailModal');
       closeModal('inAppChatModal');
       openInboxConversationDirect(appId, name, logo, jobTitle, jobId);
-    }
-
-      openModal('inAppChatModal');
-
-      const container = document.getElementById('chatMessagesList');
-      if (container) {
-        container.innerHTML = '<div style="text-align: center; padding: 36px 16px; color: #78827D; font-size: 13px;">Loading conversation...</div>';
-      }
-
-      await loadChatMessages(appId);
-
-      if (window._chatPollTimer) clearInterval(window._chatPollTimer);
-      window._chatPollTimer = setInterval(() => {
-        const modal = document.getElementById('inAppChatModal');
-        if (modal && modal.classList.contains('active') && CURRENT_CHAT_APP_ID === appId) {
-          loadChatMessages(appId, true);
-        } else {
-          clearInterval(window._chatPollTimer);
-          window._chatPollTimer = null;
-        }
-      }, 2500);
     }
 
     async function loadChatMessages(appId, isPoll = false) {
