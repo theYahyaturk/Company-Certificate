@@ -379,8 +379,8 @@ export function renderJobPortalPage(
               <span style="font-size: 10px; font-weight: 800; background: #006B3C; color: #FFFFFF; padding: 2px 8px; border-radius: 100px;">GPS Live</span>
             </div>
             <div>
-              <div class="discovery-title">Nearby Jobs &amp; Opportunities</div>
-              <div class="discovery-sub">On-Site &amp; Hybrid openings near your current location</div>
+              <div class="discovery-title">Nearby Jobs</div>
+              <div class="discovery-sub">On-Site &amp; Hybrid</div>
             </div>
           </div>
 
@@ -393,8 +393,8 @@ export function renderJobPortalPage(
               <span style="font-size: 10px; font-weight: 800; background: #ECFDF5; color: #006B3C; padding: 2px 8px; border-radius: 100px;">Pan India</span>
             </div>
             <div>
-              <div class="discovery-title">Explore Remote Jobs</div>
-              <div class="discovery-sub">Work From Home careers across India</div>
+              <div class="discovery-title">Remote Jobs</div>
+              <div class="discovery-sub">Work From Home</div>
             </div>
           </div>
         </div>
@@ -445,17 +445,11 @@ export function renderJobPortalPage(
       <!-- VIEW 2: DEDICATED REMOTE JOBS -->
       <!-- ============================================================= -->
       <section class="screen-view" id="view-remote-jobs">
-        <div style="padding: 16px 0 12px 0; display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <h1 class="hero-heading" style="font-size: 22px;">Remote Jobs <span>(Work From Home)</span></h1>
-            <p style="font-size: 12px; color: #78827D; margin-top: 2px;">Verified remote careers and internships across India.</p>
-          </div>
-          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color);">
-            &larr; Back to Map
-          </button>
+        <div style="padding: 12px 0 10px 0;">
+          <h1 class="hero-heading" style="font-size: 20px;">Remote Jobs</h1>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 40px;" id="remoteJobsFeedGrid">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 40px;" id="remoteJobsFeedGrid">
           ${jobs.filter(j => j.work_mode === 'remote').map(j => `
             <div class="alifeo-job-card" onclick="openJobDetailModal('${j.id}')">
               <div class="job-card-top">
@@ -486,11 +480,10 @@ export function renderJobPortalPage(
               </div>
             </div>
           `).join('') || `
-            <div style="grid-column: 1 / -1; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 20px; padding: 40px; text-align: center;">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#006B3C" stroke-width="2" style="margin: 0 auto 10px auto;"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-              <h3 style="font-size: 16px; font-weight: 800; color: #17231D;">No Active Remote Jobs In Database</h3>
-              <p style="font-size: 12px; color: #78827D; margin-top: 4px;">Currently all approved openings are based on-site near Moradabad &amp; NCR.</p>
-              <button class="btn-lime-apply" style="margin-top: 14px;" onclick="switchView('candidate-home')">View Nearby Jobs on Map</button>
+            <div style="grid-column: 1 / -1; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 18px; padding: 32px 16px; text-align: center;">
+              <div style="font-size: 24px; margin-bottom: 8px;">🏠</div>
+              <h3 style="font-size: 15px; font-weight: 800; color: #17231D;">No Active Remote Jobs</h3>
+              <p style="font-size: 12px; color: #78827D; margin-top: 4px;">New remote opportunities will appear here.</p>
             </div>
           `}
         </div>
@@ -500,14 +493,11 @@ export function renderJobPortalPage(
       <!-- VIEW 3: ALL JOBS LIST -->
       <!-- ============================================================= -->
       <section class="screen-view" id="view-all-jobs-list">
-        <div style="padding: 16px 0 12px 0; display: flex; align-items: center; justify-content: space-between;">
-          <h1 class="hero-heading" style="font-size: 22px;">All Job Openings</h1>
-          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color);">
-            &larr; Back to Map
-          </button>
+        <div style="padding: 12px 0 10px 0;">
+          <h1 class="hero-heading" style="font-size: 20px;">All Openings</h1>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; margin-bottom: 40px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 40px;">
           ${jobs.map(j => `
             <div class="alifeo-job-card" onclick="openJobDetailModal('${j.id}')">
               <div class="job-card-top">
@@ -601,7 +591,7 @@ export function renderJobPortalPage(
             </div>
           `).join('') : `
             <div style="text-align: center; padding: 24px; color: #78827D; font-size: 13px;">
-              You have not posted any jobs yet. Click "Post a New Job" above to pin your hiring location on the live candidate map!
+              No jobs posted yet. Click "Post a New Job" above to create an opening.
             </div>
           `}
         </div>
@@ -643,7 +633,7 @@ export function renderJobPortalPage(
               </div>
             </div>
           `).join('') : `
-            <div style="text-align: center; padding: 24px; color: #78827D; font-size: 13px;">No applicants received yet. Approved jobs appear live on candidate maps within 30km.</div>
+            <div style="text-align: center; padding: 24px; color: #78827D; font-size: 13px;">No applicants received yet.</div>
           `}
         </div>
       </section>
@@ -652,14 +642,8 @@ export function renderJobPortalPage(
       <!-- VIEW 5: CANDIDATE MY APPLICATIONS -->
       <!-- ============================================================= -->
       <section class="screen-view" id="view-my-applications">
-        <div style="padding: 16px 0 14px 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-          <div>
-            <h1 class="hero-heading" style="font-size: 22px;">My Applications</h1>
-            <p style="font-size: 12px; color: #78827D; margin-top: 2px;">Track live progress of your job applications, interviews, and offers.</p>
-          </div>
-          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color); padding: 6px 14px;">
-            &larr; Back to Map
-          </button>
+        <div style="padding: 12px 0 10px 0;">
+          <h1 class="hero-heading" style="font-size: 20px;">My Applications</h1>
         </div>
 
         <div style="display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 4px;">
@@ -714,13 +698,10 @@ export function renderJobPortalPage(
               </div>
             `;
   }).join('') : `
-            <div style="text-align: center; padding: 48px 16px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 20px;">
-              <div style="width: 56px; height: 56px; border-radius: 50%; background: #ECFDF5; color: #006B3C; font-size: 26px; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">📄</div>
-              <h3 style="font-size: 17px; font-weight: 800; color: #17231D; margin-bottom: 6px;">No Applications Submitted Yet</h3>
-              <p style="font-size: 13px; color: #78827D; max-width: 380px; margin: 0 auto 20px auto; line-height: 1.5;">Explore live nearby hiring locations on the map or apply to remote roles with instant 1-Click Application!</p>
-              <button class="btn-lime-submit" style="display: inline-block; width: auto; padding: 10px 24px;" onclick="switchView('candidate-home')">
-                Explore Live Map &rarr;
-              </button>
+            <div style="text-align: center; padding: 36px 16px; background: #FFFFFF; border: 1px solid var(--border-color); border-radius: 18px;">
+              <div style="font-size: 26px; margin-bottom: 8px;">📄</div>
+              <h3 style="font-size: 15px; font-weight: 800; color: #17231D; margin-bottom: 4px;">No Applications Yet</h3>
+              <p style="font-size: 12px; color: #78827D;">Applied jobs and interview statuses will appear here.</p>
             </div>
           `}
         </div>
@@ -730,20 +711,10 @@ export function renderJobPortalPage(
       <!-- VIEW 6: MESSAGES & INBOX -->
       <!-- ============================================================= -->
       <section class="screen-view" id="view-messages-inbox">
-        <div style="padding: 16px 0 14px 0; display: flex; align-items: center; justify-content: space-between;">
-          <div>
-            <h1 class="hero-heading" style="font-size: 22px;">Messages &amp; Interviews</h1>
-            <p style="font-size: 12px; color: #78827D; margin-top: 2px;">Direct hiring conversations and interview communications.</p>
-          </div>
-          <button class="nav-link-btn" onclick="switchView('candidate-home')" style="border: 1px solid var(--border-color); padding: 6px 14px;">
-            &larr; Back to Map
-          </button>
-        </div>
-
         <div class="inbox-container">
           <div class="inbox-conversations-sidebar">
-            <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 12px; font-weight: 800; color: #17231D;">
-              All Conversations
+            <div style="padding: 12px 14px; border-bottom: 1px solid var(--border-color); font-size: 13px; font-weight: 800; color: #17231D;">
+              Conversations
             </div>
             <div id="inboxConversationList" style="overflow-y: auto; flex: 1;">
               <div style="padding: 24px; text-align: center; color: #78827D; font-size: 12px;">Loading messages...</div>
@@ -751,29 +722,29 @@ export function renderJobPortalPage(
           </div>
 
           <div class="inbox-chat-pane">
-            <div class="chat-header" id="inboxChatHeader" style="border-radius: 0; padding: 12px 18px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #FFFFFF;">
-              <div class="chat-header-user" style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <div class="chat-header" id="inboxChatHeader" style="border-radius: 0; padding: 10px 14px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; background: #FFFFFF; position: sticky; top: 0; z-index: 10;">
+              <div class="chat-header-user" style="display: flex; align-items: center; gap: 8px; min-width: 0;">
                 <button type="button" class="chat-back-btn mobile-chat-back-btn" onclick="backToConversationList()" title="Back to conversations">&larr;</button>
                 <div style="position: relative; flex-shrink: 0;">
-                  <div class="chat-avatar-icon" id="inboxHeaderAvatar" style="width: 44px; height: 44px; border-radius: 12px; font-size: 18px; font-weight: 800; background: #004D35; color: #CFF92D; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1.5px solid #E2E8F0;">
+                  <div class="chat-avatar-icon" id="inboxHeaderAvatar" style="width: 38px; height: 38px; border-radius: 50%; font-size: 16px; font-weight: 800; background: #004D35; color: #CFF92D; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1.5px solid #E2E8F0;">
                     <span id="inboxHeaderAvatarInitial">A</span>
                     <img id="inboxHeaderAvatarImg" src="" style="display: none; width: 100%; height: 100%; object-fit: cover;">
                   </div>
-                  <span id="inboxHeaderOnlineDot" style="position: absolute; bottom: -1px; right: -1px; width: 11px; height: 11px; background: #10B981; border: 2px solid #FFFFFF; border-radius: 50%;"></span>
+                  <span id="inboxHeaderOnlineDot" style="position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; background: #10B981; border: 2px solid #FFFFFF; border-radius: 50%;"></span>
                 </div>
                 <div style="min-width: 0;">
-                  <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                    <span style="font-size: 15px; font-weight: 800; color: #17231D;" id="inboxRecipientName">Select a Conversation</span>
-                    <span id="inboxVerifiedBadge" style="display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 800; background: #ECFDF5; color: #006B3C; border: 1px solid #A7F3D0; padding: 1px 7px; border-radius: 100px;">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 14px; font-weight: 800; color: #17231D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="inboxRecipientName">Select Conversation</span>
+                    <span id="inboxVerifiedBadge" style="display: inline-flex; align-items: center; gap: 3px; font-size: 9.5px; font-weight: 800; background: #ECFDF5; color: #006B3C; border: 1px solid #A7F3D0; padding: 1px 6px; border-radius: 100px;">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
                       Verified
                     </span>
                   </div>
-                  <div style="font-size: 11px; color: #78827D; margin-top: 1px;" id="inboxRecipientSub">Where is My Job Direct Chat</div>
+                  <div style="font-size: 10.5px; color: #10B981; font-weight: 700; margin-top: 1px;" id="inboxRecipientSub">● Online</div>
                 </div>
               </div>
               <div id="inboxHeaderActions" style="display: none; align-items: center; gap: 8px;">
-                <button type="button" class="nav-link-btn" id="inboxViewJobBtn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 11px; font-weight: 700; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                <button type="button" class="nav-link-btn" id="inboxViewJobBtn" style="border: 1px solid var(--border-color); padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; gap: 4px; cursor: pointer;">
                   <span>💼 View Job</span>
                 </button>
               </div>
@@ -785,10 +756,10 @@ export function renderJobPortalPage(
               </div>
             </div>
 
-            <div class="chat-input-bar" id="inboxInputBar" style="display: none; padding: 12px 18px; background: #FFFFFF; border-top: 1px solid var(--border-color); gap: 10px; align-items: center;">
-              <input type="text" id="inboxMessageInput" class="chat-input-field" placeholder="Type your response to employer..." onkeypress="if(event.key === 'Enter') sendInboxMessage()" style="flex: 1; padding: 12px 18px; border-radius: 100px; border: 1.5px solid #E2E8F0; font-size: 13px; font-family: inherit; outline: none; background: #F8FAF7;">
-              <button type="button" class="chat-send-btn" id="inboxSendBtn" onclick="sendInboxMessage()" title="Send Message" style="width: 44px; height: 44px; border-radius: 50%; background: #004D35; border: none; color: #CFF92D; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; flex-shrink: 0;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <div class="chat-input-bar" id="inboxInputBar" style="display: none; padding: 10px 14px; background: #FFFFFF; border-top: 1px solid var(--border-color); gap: 8px; align-items: center; position: sticky; bottom: 0; z-index: 10;">
+              <input type="text" id="inboxMessageInput" class="chat-input-field" placeholder="Type a message..." onkeypress="if(event.key === 'Enter') sendInboxMessage()" style="flex: 1; padding: 10px 16px; border-radius: 100px; border: 1.5px solid #E2E8F0; font-size: 13.5px; font-family: inherit; outline: none; background: #F8FAF7;">
+              <button type="button" class="chat-send-btn" id="inboxSendBtn" onclick="sendInboxMessage()" title="Send Message" style="width: 40px; height: 40px; border-radius: 50%; background: #004D35; border: none; color: #CFF92D; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="22" y1="2" x2="11" y2="13"></line>
                   <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                 </svg>
@@ -2135,7 +2106,7 @@ export function renderJobPortalPage(
       if (nameEl) nameEl.innerText = otherName || 'Alifeo';
 
       const subEl = document.getElementById('inboxRecipientSub');
-      if (subEl) subEl.innerText = (jobTitle ? jobTitle + ' • ' : '') + 'Where is My Job Chat • 🟢 Online';
+      if (subEl) subEl.innerText = '● Online';
 
       const initialEl = document.getElementById('inboxHeaderAvatarInitial');
       const imgEl = document.getElementById('inboxHeaderAvatarImg');
@@ -2202,10 +2173,10 @@ export function renderJobPortalPage(
         if (messages.length === 0) {
           const compName = document.getElementById('inboxRecipientName')?.innerText || 'Hiring Team';
           body.innerHTML = 
-            '<div style="text-align: center; padding: 48px 16px; color: #78827D;">' +
-              '<div style="font-size: 36px; margin-bottom: 8px;">💼</div>' +
-              '<div style="font-size: 15px; font-weight: 800; color: #17231D; margin-bottom: 4px;">Direct Conversation with ' + escapeHtml(compName) + '</div>' +
-              '<div style="font-size: 12px; color: #64748B; max-width: 320px; margin: 0 auto; line-height: 1.5;">This direct channel connects you with the hiring team for ' + escapeHtml(jobTitle || 'this role') + '. Ask about role expectations, timings, or interview schedules.</div>' +
+            '<div style="text-align: center; padding: 36px 16px; color: #78827D;">' +
+              '<div style="font-size: 28px; margin-bottom: 6px;">💬</div>' +
+              '<div style="font-size: 14px; font-weight: 700; color: #17231D;">Chat with ' + escapeHtml(compName) + '</div>' +
+              '<div style="font-size: 11.5px; color: #94A3B8; margin-top: 2px;">Send a message to start conversation.</div>' +
             '</div>';
         } else {
           const isEmployer = (typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'employer');
@@ -2221,23 +2192,18 @@ export function renderJobPortalPage(
               const isOut = (m.sender_role === myRole || (myPhone && m.sender_phone === myPhone));
               if (isOut) {
                 html += 
-                  '<div class="chat-bubble chat-bubble-out" style="align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">' +
-                    '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
-                    '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; color: #A7F3D0; margin-top: 4px;">' +
+                  '<div class="chat-bubble chat-bubble-out" style="align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">' +
+                    '<div style="font-size: 13.5px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
+                    '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9.5px; color: #A7F3D0; margin-top: 4px;">' +
                       '<span>' + timeStr + '</span>' +
                       '<span style="font-weight: 800; font-size: 11px;">✓✓</span>' +
                     '</div>' +
                   '</div>';
               } else {
-                const senderName = m.sender_name || (m.sender_role === 'employer' ? 'Alifeo Recruiter' : 'Candidate');
                 html += 
-                  '<div class="chat-bubble chat-bubble-in" style="align-self: flex-start; background: #FFFFFF; color: #17231D; border: 1px solid #E2E8F0; border-radius: 16px 16px 16px 4px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">' +
-                    '<div style="font-size: 11px; font-weight: 800; color: #006B3C; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">' +
-                      '<span>' + escapeHtml(senderName) + '</span>' +
-                      '<span style="font-size: 9px; background: #ECFDF5; color: #006B3C; padding: 1px 5px; border-radius: 6px; font-weight: 700;">Recruiter</span>' +
-                    '</div>' +
-                    '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
-                    '<div style="font-size: 9px; color: #94A3B8; margin-top: 4px; text-align: right;">' + timeStr + '</div>' +
+                  '<div class="chat-bubble chat-bubble-in" style="align-self: flex-start; background: #FFFFFF; color: #17231D; border: 1px solid #E2E8F0; border-radius: 16px 16px 16px 4px; padding: 10px 14px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">' +
+                    '<div style="font-size: 13.5px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
+                    '<div style="font-size: 9.5px; color: #94A3B8; margin-top: 4px; text-align: right;">' + timeStr + '</div>' +
                   '</div>';
               }
             }
@@ -2264,10 +2230,10 @@ export function renderJobPortalPage(
       // Optimistic append
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble chat-bubble-out';
-      bubble.style.cssText = 'align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 75%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);';
+      bubble.style.cssText = 'align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);';
       bubble.innerHTML = 
-        '<div style="font-size: 13px; line-height: 1.45; word-break: break-word;">' + escapeHtml(text) + '</div>' +
-        '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9px; color: #A7F3D0; margin-top: 4px;">' +
+        '<div style="font-size: 13.5px; line-height: 1.45; word-break: break-word;">' + escapeHtml(text) + '</div>' +
+        '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9.5px; color: #A7F3D0; margin-top: 4px;">' +
           '<span>' + timeStr + '</span>' +
           '<span style="font-weight: 800; font-size: 11px;">✓</span>' +
         '</div>';
@@ -2773,7 +2739,6 @@ export function renderJobPortalPage(
           } else {
             html += 
               '<div class="chat-bubble chat-bubble-in">' +
-                '<div style="font-size: 11px; font-weight: 700; color: #006B3C; margin-bottom: 2px;">' + escapeHtml(msg.sender_name || 'Hiring Team') + '</div>' +
                 '<div>' + escapeHtml(msg.message) + '</div>' +
                 '<div class="chat-bubble-time">' + timeStr + '</div>' +
               '</div>';

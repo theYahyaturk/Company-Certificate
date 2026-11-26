@@ -1254,13 +1254,18 @@ export const JOB_PORTAL_STYLES = `
     margin-bottom: 30px;
   }
   @media (max-width: 768px) {
+    #view-messages-inbox {
+      padding: 0;
+      margin: 0;
+    }
     .inbox-container {
       display: flex;
       flex-direction: column;
-      height: calc(100vh - 145px);
+      height: calc(100dvh - 120px);
       min-height: 480px;
       position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 0;
+      border-radius: 16px;
     }
     .inbox-conversations-sidebar {
       width: 100%;
@@ -1273,10 +1278,10 @@ export const JOB_PORTAL_STYLES = `
       display: none;
       width: 100%;
       height: 100%;
-      position: absolute;
+      position: fixed;
       inset: 0;
       background: #F8FAF7;
-      z-index: 50;
+      z-index: 1500;
       flex-direction: column;
     }
     .inbox-container.mobile-chat-open .inbox-conversations-sidebar {
@@ -1288,21 +1293,24 @@ export const JOB_PORTAL_STYLES = `
     body.inbox-chat-active .mobile-bottom-nav {
       display: none !important;
     }
+    body.inbox-chat-active .global-header {
+      display: none !important;
+    }
     .mobile-chat-back-btn {
       display: flex !important;
       align-items: center;
       justify-content: center;
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       border-radius: 50%;
       background: #F1F5F9;
       border: 1px solid var(--border-color);
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
       color: #17231D;
       cursor: pointer;
       flex-shrink: 0;
-      margin-right: 4px;
+      margin-right: 6px;
     }
   }
   @media (min-width: 769px) {
