@@ -243,6 +243,146 @@ export const JOB_PORTAL_STYLES = `
     transform: scale(1.02);
   }
 
+  /* Pro Mobile App Bar & Controls */
+  .pro-mobile-header {
+    padding: 6px 0 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .pro-app-bar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pro-loc-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    min-width: 0;
+    flex: 1;
+  }
+  .pro-loc-icon-box {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: #E8F5E9;
+    border: 1px solid rgba(0, 77, 53, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .pro-loc-info {
+    min-width: 0;
+  }
+  .pro-loc-heading {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-text);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pro-loc-sub {
+    font-size: 10px;
+    color: var(--secondary-text);
+    font-weight: 600;
+    margin-top: 1px;
+  }
+  .btn-pro-remote-pill {
+    background: var(--primary-lime);
+    color: var(--deep-green);
+    font-size: 11.5px;
+    font-weight: 800;
+    padding: 7px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(0, 77, 53, 0.15);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(207, 249, 45, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .btn-pro-remote-pill:hover {
+    transform: scale(1.02);
+  }
+  .pro-search-row {
+    width: 100%;
+  }
+  .pro-search-box {
+    display: flex;
+    align-items: center;
+    background: #FFFFFF;
+    border: 1.5px solid var(--border-color);
+    border-radius: 14px;
+    padding: 0 14px;
+    height: 44px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s ease;
+  }
+  .pro-search-box:focus-within {
+    border-color: var(--primary-dark-green);
+    box-shadow: 0 0 0 3px rgba(0, 77, 53, 0.08);
+  }
+  .pro-search-box input {
+    border: none;
+    outline: none;
+    width: 100%;
+    margin-left: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--primary-text);
+    background: transparent;
+  }
+  .pro-filters-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .pro-filters-scroll::-webkit-scrollbar {
+    display: none;
+  }
+  .pro-filter-chip {
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid var(--border-color);
+    background: #FFFFFF;
+    color: var(--primary-text);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .pro-filter-chip.active, .pro-filter-chip.mini-tag-green {
+    background: #004D35 !important;
+    color: #FFFFFF !important;
+    border-color: #004D35 !important;
+  }
+
+  @media (max-width: 768px) {
+    .global-footer {
+      display: none !important;
+    }
+  }
+
   /* Candidate Hero Bar */
   .candidate-hero-bar {
     padding: 14px 0 10px 0;

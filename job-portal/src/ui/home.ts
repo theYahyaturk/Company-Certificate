@@ -28,10 +28,10 @@ export function renderJobPortalPage(
   <title>Where Is My Job? by alifeo — Find. Apply. Grow.</title>
   <link rel="icon" type="image/png" href="${WHERE_IS_MY_JOB_LOGO_BASE64}">
   
-  <!-- Leaflet CSS for free interactive map -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet CSS for free interactive map (Ultra-fast CDN, zero SRI blocking) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <!-- Ably Real-time SDK for in-app chat -->
   <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
 
@@ -259,7 +259,6 @@ export function renderJobPortalPage(
           <img src="${WHERE_IS_MY_JOB_LOGO_BASE64}" alt="Where is My Job?" class="brand-logo-img">
           <div class="brand-title-wrap">
             <div class="brand-title">Where is <span style="color: #006B3C;">My Job?</span></div>
-            <div class="brand-tagline">by alifeo</div>
           </div>
         </div>
 
@@ -323,64 +322,65 @@ export function renderJobPortalPage(
       <!-- ============================================================= -->
       <section class="screen-view active" id="view-candidate-home">
         
-        <!-- 1. Candidate Mobile App Bar (Greeting + GPS City + Quick Remote Pill) -->
-        <div class="candidate-app-bar">
-          <div class="app-bar-user-row">
-            <div>
-              <div class="app-bar-greeting">Hi, ${escapeHtml(userName)} 👋</div>
-              <div class="app-bar-location" onclick="openCityPickerModal()" title="Change Search City">
-                <span>📍</span>
-                <strong id="currentLocHeader">Moradabad, India</strong>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <!-- 1. UNIFIED PRO MOBILE APP BAR & CONTROLS (Native App Style, Pro SVG Icons) -->
+        <div class="pro-mobile-header">
+          <div class="pro-app-bar-row">
+            <div class="pro-loc-selector" onclick="openCityPickerModal()" title="Change Search Location">
+              <div class="pro-loc-icon-box">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#004D35" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <div class="pro-loc-info">
+                <div class="pro-loc-heading">
+                  <span id="currentLocHeader">Moradabad, India</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="pro-loc-sub">GPS Verified &bull; Tap to change city</div>
               </div>
             </div>
-            <div class="app-bar-actions">
-              <button type="button" class="btn-quick-remote-pill" onclick="switchView('remote-jobs')">
-                🏠 Remote Jobs &rarr;
+
+            <div class="pro-header-right">
+              <button type="button" class="btn-pro-remote-pill" onclick="switchView('remote-jobs')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span>Remote Jobs</span>
               </button>
             </div>
           </div>
-        </div>
 
-        <!-- 2. Location & Search Bar (Clicking Location opens In-App City Modal, NO alert/prompt!) -->
-        <div class="search-location-panel">
-          <div class="loc-badge-wrap" onclick="openCityPickerModal()" title="Change Search City">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#006B3C" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <div>
-              <div style="font-size: 9px; font-weight: 700; color: #78827D; text-transform: uppercase;">Location</div>
-              <div style="font-size: 13px; font-weight: 800; color: #17231D; display: flex; align-items: center; gap: 4px;">
-                <span id="currentLocHeader">Moradabad, India</span>
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-              </div>
+          <!-- PRO FLOATING SEARCH & FILTER BAR -->
+          <div class="pro-search-row">
+            <div class="pro-search-box">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="mainSearchInput" placeholder="Search jobs by title, factory, shop or skill..." oninput="triggerSearch()">
             </div>
           </div>
 
-          <div class="search-input-box">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#78827D" stroke-width="2" style="margin-right: 6px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input type="text" id="mainSearchInput" placeholder="Search by job title, factory, shop or skill..." oninput="triggerSearch()">
-          </div>
-
-          <!-- Radius Selector -->
-          <div class="radius-selector-row">
-            <button class="mini-tag-pill" id="rad20" onclick="changeSearchRadius(20)">20 km</button>
-            <button class="mini-tag-pill mini-tag-green" id="rad30" onclick="changeSearchRadius(30)">30 km</button>
-            <button class="mini-tag-pill" id="rad50" onclick="changeSearchRadius(50)">50 km</button>
-            <button class="mini-tag-pill" id="rad100" onclick="changeSearchRadius(100)">100 km</button>
-            <button class="mini-tag-pill" id="rad1000" onclick="changeSearchRadius(1000)">Pan India</button>
+          <!-- PRO RADIUS & FILTER CHIPS (Horizontal Scrollable, Sleek) -->
+          <div class="pro-filters-scroll">
+            <button class="pro-filter-chip mini-tag-green" id="rad20" onclick="changeSearchRadius(20)">Within 20 km</button>
+            <button class="pro-filter-chip" id="rad30" onclick="changeSearchRadius(30)">30 km</button>
+            <button class="pro-filter-chip" id="rad50" onclick="changeSearchRadius(50)">50 km</button>
+            <button class="pro-filter-chip" id="rad100" onclick="changeSearchRadius(100)">100 km</button>
+            <button class="pro-filter-chip" id="rad1000" onclick="changeSearchRadius(1000)">Pan India</button>
           </div>
         </div>
 
-        <!-- 3. LIVE MAP VIEW FIRST (Zomato-type Map first!) -->
+        <!-- 2. LIVE INTERACTIVE MAP (With Pro SVG Controls, No cartoon emojis) -->
         <div class="map-container-box" id="mapAnchor">
           <div id="hiringMap"></div>
 
-          <!-- Street vs Satellite Layer Switcher -->
+          <!-- Street vs Satellite Layer Switcher (Pro SVG Icons) -->
           <div class="map-layer-switcher">
-            <button class="map-layer-btn active" id="btnLayerStreet" onclick="setMapLayer('street')">🗺️ Streets</button>
-            <button class="map-layer-btn" id="btnLayerSat" onclick="setMapLayer('satellite')">🛰️ Satellite</button>
+            <button class="map-layer-btn active" id="btnLayerStreet" onclick="setMapLayer('street')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+              <span>Map</span>
+            </button>
+            <button class="map-layer-btn" id="btnLayerSat" onclick="setMapLayer('satellite')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+              <span>Satellite</span>
+            </button>
           </div>
 
-          <!-- GPS Recenter Button -->
+          <!-- GPS Recenter Button (Pro Crosshair SVG) -->
           <button class="map-gps-btn" onclick="detectGPSLocation()" title="Detect My Current GPS Location">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
           </button>
@@ -762,8 +762,9 @@ export function renderJobPortalPage(
                 </div>
               </div>
               <div id="inboxHeaderActions" style="display: none; align-items: center; gap: 8px;">
-                <button type="button" class="nav-link-btn" id="inboxViewJobBtn" style="border: 1px solid var(--border-color); padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; gap: 4px; cursor: pointer;">
-                  <span>💼 View Job</span>
+                <button type="button" class="nav-link-btn" id="inboxViewJobBtn" style="border: 1px solid var(--border-color); padding: 4px 10px; font-size: 11px; font-weight: 700; border-radius: 8px; background: #FFFFFF; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                  <span>View Job</span>
                 </button>
               </div>
             </div>
@@ -794,10 +795,10 @@ export function renderJobPortalPage(
       <div class="portal-container footer-inner">
         <div class="footer-brand">
           <img src="${WHERE_IS_MY_JOB_LOGO_BASE64}" alt="Where is My Job?" style="width: 24px; height: 24px; border-radius: 6px;">
-          <span>Where is My Job? &bull; by alifeo</span>
+          <span>Where is My Job?</span>
         </div>
         <div>
-          <span>Official Corporate Recruitment &bull; &copy; 2026 Alifeo</span>
+          <span>&copy; 2026 Alifeo. All rights reserved.</span>
         </div>
       </div>
     </footer>
@@ -863,15 +864,15 @@ export function renderJobPortalPage(
 
       <div style="font-size: 11px; font-weight: 700; color: #78827D; margin-top: 12px; text-transform: uppercase;">Quick Cities</div>
       <div class="city-chips-grid">
-        <button class="city-chip-btn" onclick="selectPresetCity('Moradabad', 28.8055, 78.7651)">📍 Moradabad</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Delhi NCR', 28.6139, 77.2090)">📍 Delhi NCR</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Noida', 28.5355, 77.3910)">📍 Noida</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Gurgaon', 28.4595, 77.0266)">📍 Gurgaon</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Bareilly', 28.3670, 79.4304)">📍 Bareilly</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Lucknow', 26.8467, 80.9462)">📍 Lucknow</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Bangalore', 12.9716, 77.5946)">📍 Bangalore</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Mumbai', 19.0760, 72.8777)">📍 Mumbai</button>
-        <button class="city-chip-btn" onclick="selectPresetCity('Pune', 18.5204, 73.8567)">📍 Pune</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Moradabad', 28.8055, 78.7651)">Moradabad</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Delhi NCR', 28.6139, 77.2090)">Delhi NCR</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Noida', 28.5355, 77.3910)">Noida</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Gurgaon', 28.4595, 77.0266)">Gurgaon</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Bareilly', 28.3670, 79.4304)">Bareilly</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Lucknow', 26.8467, 80.9462)">Lucknow</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Bangalore', 12.9716, 77.5946)">Bangalore</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Mumbai', 19.0760, 72.8777)">Mumbai</button>
+        <button class="city-chip-btn" onclick="selectPresetCity('Pune', 18.5204, 73.8567)">Pune</button>
       </div>
 
       <button type="button" class="btn-lime-submit" onclick="detectGPSLocation(); closeModal('cityPickerModal');" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -2249,9 +2250,11 @@ export function renderJobPortalPage(
           const compName = document.getElementById('inboxRecipientName')?.innerText || 'Hiring Team';
           body.innerHTML = 
             '<div style="text-align: center; padding: 36px 16px; color: #78827D;">' +
-              '<div style="font-size: 28px; margin-bottom: 6px;">💬</div>' +
+              '<div style="width: 44px; height: 44px; border-radius: 50%; background: #E8F5E9; color: #004D35; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px auto;">' +
+                '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>' +
+              '</div>' +
               '<div style="font-size: 14px; font-weight: 700; color: #17231D;">Chat with ' + escapeHtml(compName) + '</div>' +
-              '<div style="font-size: 11.5px; color: #94A3B8; margin-top: 2px;">Send a message to start conversation.</div>' +
+              '<div style="font-size: 11.5px; color: #94A3B8; margin-top: 2px;">Direct hiring channel &bull; Send a message to start conversation.</div>' +
             '</div>';
         } else {
           const isEmployer = (typeof CURRENT_USER_ROLE !== 'undefined' && CURRENT_USER_ROLE === 'employer');
@@ -2262,7 +2265,7 @@ export function renderJobPortalPage(
           for (const m of messages) {
             const timeStr = new Date(m.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             if (m.sender_role === 'system' || m.sender_type === 'system') {
-              html += '<div class="chat-system-pill" style="align-self: center; background: #E8ECE8; color: #17231D; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 100px; text-align: center; margin: 6px 0;">🔔 ' + escapeHtml(m.message) + '</div>';
+              html += '<div class="chat-system-pill" style="align-self: center; background: #E8ECE8; color: #17231D; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 100px; text-align: center; margin: 6px 0;">' + escapeHtml(m.message) + '</div>';
             } else {
               const isOut = (m.sender_role === myRole || (myPhone && m.sender_phone === myPhone));
               if (isOut) {
@@ -2394,46 +2397,49 @@ export function renderJobPortalPage(
       if (!container || MAP_INSTANCE) return;
 
       if (typeof L === 'undefined') {
-        setTimeout(initHiringMap, 300);
+        setTimeout(initHiringMap, 200);
         return;
       }
 
-      MAP_INSTANCE = L.map('hiringMap', {
-        center: [USER_COORDS.lat, USER_COORDS.lng],
-        zoom: 13,
-        zoomControl: false,
-        attributionControl: false
-      });
+      try {
+        MAP_INSTANCE = L.map('hiringMap', {
+          center: [USER_COORDS.lat, USER_COORDS.lng],
+          zoom: 13,
+          zoomControl: false,
+          attributionControl: false
+        });
 
-      STREET_LAYER = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        maxZoom: 19,
-        subdomains: 'abcd'
-      });
+        // OpenStreetMap high-speed reliable tile layer
+        STREET_LAYER = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          subdomains: ['a','b','c'],
+          attribution: ''
+        });
 
-      SATELLITE_LAYER = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        maxZoom: 19
-      });
+        SATELLITE_LAYER = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19
+        });
 
-      STREET_LAYER.addTo(MAP_INSTANCE);
+        STREET_LAYER.addTo(MAP_INSTANCE);
 
-      MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
-      drawUserPin(USER_COORDS.lat, USER_COORDS.lng);
-      drawCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
+        MAP_MARKERS_LAYER = L.layerGroup().addTo(MAP_INSTANCE);
+        drawUserPin(USER_COORDS.lat, USER_COORDS.lng);
+        drawCircle(USER_COORDS.lat, USER_COORDS.lng, CURRENT_RADIUS_KM);
 
-      if (window.ResizeObserver) {
-        new ResizeObserver(() => {
-          if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-        }).observe(container);
+        const refreshMap = () => {
+          if (MAP_INSTANCE) {
+            MAP_INSTANCE.invalidateSize();
+          }
+        };
+
+        if (window.ResizeObserver) {
+          new ResizeObserver(refreshMap).observe(container);
+        }
+        window.addEventListener('resize', refreshMap);
+        [50, 150, 300, 600, 1200].forEach(delay => setTimeout(refreshMap, delay));
+      } catch (err) {
+        console.error('Map initialization notice:', err);
       }
-      window.addEventListener('resize', () => {
-        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      });
-      setTimeout(() => {
-        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      }, 200);
-      setTimeout(() => {
-        if (MAP_INSTANCE) MAP_INSTANCE.invalidateSize();
-      }, 600);
     }
 
     function setMapLayer(type) {
