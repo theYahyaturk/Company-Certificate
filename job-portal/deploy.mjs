@@ -125,7 +125,14 @@ async function main() {
     body: formData
   });
 
-  const uploadData = await uploadRes.json();
+  const resText = await uploadRes.text();
+  let uploadData;
+  try {
+    uploadData = JSON.parse(resText);
+  } catch (e) {
+    error(`Cloudflare API returned non-JSON response (${uploadRes.status}): ${resText.substring(0, 250)}`);
+    process.exit(1);
+  }
   if (!uploadData.success) {
     error(`Worker upload failed: ${JSON.stringify(uploadData.errors)}`);
     process.exit(1);

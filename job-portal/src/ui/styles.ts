@@ -197,6 +197,52 @@ export const JOB_PORTAL_STYLES = `
     to { opacity: 1; transform: translateY(0); }
   }
 
+  /* Candidate Mobile App Bar */
+  .candidate-app-bar {
+    padding: 10px 0 6px 0;
+  }
+  .app-bar-user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .app-bar-greeting {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--primary-text);
+    line-height: 1.2;
+  }
+  .app-bar-location {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11.5px;
+    color: var(--primary-dark-green);
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 2px;
+  }
+  .btn-quick-remote-pill {
+    background: var(--primary-lime);
+    color: var(--deep-green);
+    font-size: 11.5px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(0, 77, 53, 0.15);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(207, 249, 45, 0.35);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+  .btn-quick-remote-pill:hover {
+    transform: scale(1.02);
+  }
+
   /* Candidate Hero Bar */
   .candidate-hero-bar {
     padding: 14px 0 10px 0;
@@ -316,7 +362,8 @@ export const JOB_PORTAL_STYLES = `
   }
   @media (max-width: 768px) {
     .map-container-box {
-      height: 380px;
+      height: 48vh;
+      min-height: 340px;
       border-radius: 18px;
     }
   }

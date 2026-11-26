@@ -468,11 +468,23 @@ export default {
         // Check if user already exists
         const existingUser = await env.DB.prepare('SELECT * FROM users WHERE phone = ?').bind(phone).first<User>();
         let activeRole = roleChoice;
+        let hasProfile = false;
 
         if (existingUser) {
           activeRole = existingUser.active_role || roleChoice;
           if (name && !existingUser.name) {
             await env.DB.prepare('UPDATE users SET name = ?, updated_at = ? WHERE phone = ?').bind(name, Date.now(), phone).run();
+          }
+
+          if (activeRole === 'job_seeker') {
+            const jsProfile = await env.DB.prepare(
+              'SELECT name, headline, skills, city FROM job_seeker_profiles WHERE phone = ?'
+            ).bind(phone).first() as any;
+            if (jsProfile && (jsProfile.headline || jsProfile.skills || (existingUser.name && existingUser.name.trim() !== ''))) {
+              hasProfile = true;
+            }
+          } else {
+            hasProfile = true;
           }
         } else {
           await env.DB.prepare(
@@ -490,6 +502,7 @@ export default {
               INSERT OR IGNORE INTO employer_profiles (phone, company_name, verification_status, created_at, updated_at)
               VALUES (?, ?, 'unverified', ?, ?)
             `).bind(phone, body.company_name || 'My Company', Date.now(), Date.now()).run();
+            hasProfile = true;
           }
         }
 
@@ -507,7 +520,12 @@ export default {
           `user_session=${cookieValue}; Path=/; SameSite=Lax; Max-Age=2592000`
         );
 
-        return new Response(JSON.stringify({ success: true, user: sessionData }), { headers });
+        return new Response(JSON.stringify({ 
+          success: true, 
+          user: sessionData, 
+          has_profile: hasProfile,
+          existing_name: existingUser?.name || ''
+        }), { headers });
       }
 
       if (path === '/api/auth/switch-role' && method === 'POST') {

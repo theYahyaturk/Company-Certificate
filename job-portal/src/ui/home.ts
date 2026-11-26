@@ -164,6 +164,11 @@ export function renderJobPortalPage(
       </div>
 
       <div class="form-group-ui">
+        <label class="form-label-ui">Mobile Number</label>
+        <input type="text" id="profilePhoneDisplay" class="form-input-ui" readonly style="background: #F1F5F9; color: #475569; font-weight: 600;">
+      </div>
+
+      <div class="form-group-ui">
         <label class="form-label-ui">Full Name</label>
         <input type="text" id="profileFullName" class="form-input-ui" placeholder="e.g. Aabeeo Kumar" required>
       </div>
@@ -318,10 +323,23 @@ export function renderJobPortalPage(
       <!-- ============================================================= -->
       <section class="screen-view active" id="view-candidate-home">
         
-        <!-- 1. Candidate Hero Bar -->
-        <div class="candidate-hero-bar">
-          <div class="hero-greeting">Hyy, ${escapeHtml(userName)} 👋</div>
-          <h1 class="hero-heading">Where is <span>My Job?</span></h1>
+        <!-- 1. Candidate Mobile App Bar (Greeting + GPS City + Quick Remote Pill) -->
+        <div class="candidate-app-bar">
+          <div class="app-bar-user-row">
+            <div>
+              <div class="app-bar-greeting">Hi, ${escapeHtml(userName)} 👋</div>
+              <div class="app-bar-location" onclick="openCityPickerModal()" title="Change Search City">
+                <span>📍</span>
+                <strong id="currentLocHeader">Moradabad, India</strong>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </div>
+            <div class="app-bar-actions">
+              <button type="button" class="btn-quick-remote-pill" onclick="switchView('remote-jobs')">
+                🏠 Remote Jobs &rarr;
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- 2. Location & Search Bar (Clicking Location opens In-App City Modal, NO alert/prompt!) -->
@@ -685,7 +703,7 @@ export function renderJobPortalPage(
                     Applied on: <strong>${new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
                   </div>
                   <div style="display: flex; gap: 8px;">
-                    <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 12px;" onclick="openInAppChat('${app.id}', '${escapeHtml(app.company_name || 'Alifeo')}', '${escapeHtml(app.job_title || 'UI/UX')}', '${app.company_logo || ''}')">
+                    <button class="nav-link-btn" style="border: 1px solid var(--border-color); padding: 5px 12px; font-size: 12px;" onclick="openInboxConversationDirect('${app.id}', '${escapeHtml(app.company_name || 'Alifeo')}', '${app.company_logo || ''}', '${escapeHtml(app.job_title || 'UI/UX')}', '${app.job_id || ''}')">
                       💬 In-App Chat
                     </button>
                     ${app.status !== 'withdrawn' && app.status !== 'rejected' ? `
@@ -1377,10 +1395,15 @@ export function renderJobPortalPage(
         });
         const data = await res.json();
         if (data.success) {
-          if (CURRENT_AUTH_ROLE === 'employer') {
-            window.location.reload();
+          if (CURRENT_AUTH_ROLE === 'employer' || data.has_profile) {
+            showInAppToast('Welcome back, ' + (data.user?.name || 'User') + '!', 'success');
+            setTimeout(() => window.location.reload(), 400);
           } else {
-            // Candidate: proceed to Complete Profile
+            // First time login - prefill phone & existing name
+            const phoneEl = document.getElementById('profilePhoneDisplay');
+            if (phoneEl) phoneEl.value = '+91 ' + ONBOARDING_PHONE;
+            const nameEl = document.getElementById('profileFullName');
+            if (nameEl && data.existing_name) nameEl.value = data.existing_name;
             goToOnboardingStep('stepCompleteProfile');
           }
         } else {
@@ -1483,6 +1506,15 @@ export function renderJobPortalPage(
 
       if (overlay) overlay.classList.remove('active');
 
+      let detectedNameFromFile = '';
+      try {
+        const cleanBase = file.name.replace(/\.[^/.]+$/, '').replace(/[_\-+()0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+        const nameMatch = cleanBase.match(/^([A-Za-z]+(?:\s+[A-Za-z]+){1,2})/);
+        if (nameMatch && !/^(resume|cv|my|final|updated|new|latest|document)/i.test(nameMatch[1])) {
+          detectedNameFromFile = nameMatch[1].trim();
+        }
+      } catch (ne) {}
+
       if (!analysisResult) {
         const fLower = file.name.toLowerCase();
         let fallbackRole = 'Product Designer & UI/UX Designer';
@@ -1495,8 +1527,11 @@ export function renderJobPortalPage(
           success: true,
           predicted_role: fallbackRole,
           extracted_skills: fallbackSkills,
+          detected_name: detectedNameFromFile,
           role_confidence: 0.95
         };
+      } else if (!analysisResult.candidate_name && !analysisResult.detected_name && detectedNameFromFile) {
+        analysisResult.detected_name = detectedNameFromFile;
       }
 
       applyAiResumeAnalysis(analysisResult, context);
@@ -1537,6 +1572,19 @@ export function renderJobPortalPage(
     function applyAiResumeAnalysis(data, context) {
       const role = data.predicted_role || 'Product Designer & UI/UX Designer';
       const skills = data.extracted_skills || [];
+      const candName = data.candidate_name || data.detected_name;
+
+      // 0. Auto-fill Candidate Name if available
+      if (candName) {
+        const nameEl = document.getElementById('profileFullName');
+        if (nameEl && (!nameEl.value || nameEl.value.trim() === '')) {
+          nameEl.value = candName;
+        }
+        const profNameEl = document.getElementById('profFullName');
+        if (profNameEl && (!profNameEl.value || profNameEl.value.trim() === '')) {
+          profNameEl.value = candName;
+        }
+      }
 
       // 1. Set Role / Headline in both onboarding and profile modal
       const headlineEl = document.getElementById('profileHeadline');
@@ -2006,6 +2054,28 @@ export function renderJobPortalPage(
       }
     }
 
+    function formatLastActive(ts) {
+      if (!ts) return '● Online';
+      try {
+        const d = new Date(ts);
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        if (diffMs < 3 * 60 * 1000) {
+          return '● Online';
+        }
+        const diffMin = Math.floor(diffMs / 60000);
+        if (diffMin < 60) {
+          return 'Active ' + diffMin + 'm ago';
+        }
+        if (d.toDateString() === now.toDateString()) {
+          return 'Last seen today at ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return 'Last active ' + d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+      } catch (e) {
+        return '● Online';
+      }
+    }
+
     function renderInboxConversationList() {
       const container = document.getElementById('inboxConversationList');
       if (!container) return;
@@ -2080,7 +2150,8 @@ export function renderJobPortalPage(
       const logo = c.company_logo || c.other_party_logo || '';
       const jobTitle = c.job_title || 'UI/UX';
       const jobId = c.job_id || '';
-      openInboxConversation(appId, companyName, logo, jobTitle, jobId);
+      const lastTime = c.last_time || c.last_message_time || '';
+      openInboxConversation(appId, companyName, logo, jobTitle, jobId, lastTime);
     }
 
     function backToConversationList() {
@@ -2092,7 +2163,7 @@ export function renderJobPortalPage(
       }
     }
 
-    async function openInboxConversation(convoId, otherName, logo, jobTitle, jobId) {
+    async function openInboxConversation(convoId, otherName, logo, jobTitle, jobId, lastTime) {
       if (!convoId) return;
       ACTIVE_CONVERSATION_ID = convoId;
 
@@ -2106,7 +2177,7 @@ export function renderJobPortalPage(
       if (nameEl) nameEl.innerText = otherName || 'Alifeo';
 
       const subEl = document.getElementById('inboxRecipientSub');
-      if (subEl) subEl.innerText = '● Online';
+      if (subEl) subEl.innerText = formatLastActive(lastTime);
 
       const initialEl = document.getElementById('inboxHeaderAvatarInitial');
       const imgEl = document.getElementById('inboxHeaderAvatarImg');
@@ -2125,11 +2196,15 @@ export function renderJobPortalPage(
       const actionsEl = document.getElementById('inboxHeaderActions');
       const viewJobBtn = document.getElementById('inboxViewJobBtn');
       if (actionsEl && viewJobBtn) {
-        actionsEl.style.display = 'flex';
-        viewJobBtn.onclick = function() {
-          if (jobId) openJobDetailModal(jobId);
-          else showInAppToast('Job opening linked to application', 'info');
-        };
+        if (jobId) {
+          actionsEl.style.display = 'flex';
+          viewJobBtn.style.display = 'flex';
+          viewJobBtn.onclick = function() {
+            openJobDetailModal(jobId);
+          };
+        } else {
+          actionsEl.style.display = 'none';
+        }
       }
 
       const inputBar = document.getElementById('inboxInputBar');
@@ -2191,12 +2266,16 @@ export function renderJobPortalPage(
             } else {
               const isOut = (m.sender_role === myRole || (myPhone && m.sender_phone === myPhone));
               if (isOut) {
+                const isRead = Number(m.is_read) === 1;
+                const tickHtml = isRead 
+                  ? '<span style="font-weight: 900; font-size: 11px; color: #38BDF8;" title="Read">✓✓</span>'
+                  : '<span style="font-weight: 800; font-size: 11px; color: #A7F3D0;" title="Delivered">✓✓</span>';
                 html += 
                   '<div class="chat-bubble chat-bubble-out" style="align-self: flex-end; background: #004D35; color: #FFFFFF; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 80%; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">' +
                     '<div style="font-size: 13.5px; line-height: 1.45; word-break: break-word;">' + escapeHtml(m.message) + '</div>' +
                     '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9.5px; color: #A7F3D0; margin-top: 4px;">' +
                       '<span>' + timeStr + '</span>' +
-                      '<span style="font-weight: 800; font-size: 11px;">✓✓</span>' +
+                      tickHtml +
                     '</div>' +
                   '</div>';
               } else {
@@ -2235,7 +2314,7 @@ export function renderJobPortalPage(
         '<div style="font-size: 13.5px; line-height: 1.45; word-break: break-word;">' + escapeHtml(text) + '</div>' +
         '<div style="display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 9.5px; color: #A7F3D0; margin-top: 4px;">' +
           '<span>' + timeStr + '</span>' +
-          '<span style="font-weight: 800; font-size: 11px;">✓</span>' +
+          '<span style="font-weight: 800; font-size: 11px; color: #A7F3D0;" title="Sent">✓</span>' +
         '</div>';
       body.appendChild(bubble);
       input.value = '';
@@ -2257,6 +2336,13 @@ export function renderJobPortalPage(
       } catch (e) {
         showInAppToast('Network issue sending message', 'error');
       }
+    }
+
+    function openInboxConversationDirect(appId, compName, logo, jobTitle, jobId) {
+      switchView('messages-inbox');
+      setTimeout(function() {
+        openInboxConversation(appId, compName, logo, jobTitle, jobId);
+      }, 120);
     }
 
     async function updateApplicantStatus(appId, newStatus) {
@@ -2646,7 +2732,7 @@ export function renderJobPortalPage(
         });
         const data = await res.json();
         if (data.success && data.application_id) {
-          openInAppChat(data.application_id, SELECTED_JOB.company_name, SELECTED_JOB.title, SELECTED_JOB.company_logo || '');
+          openInAppChat(data.application_id, SELECTED_JOB.company_name, SELECTED_JOB.title, SELECTED_JOB.company_logo || '', SELECTED_JOB.id);
         } else {
           showInAppToast(data.error || 'Failed to open chat', 'error');
         }
@@ -2655,27 +2741,12 @@ export function renderJobPortalPage(
       }
     }
 
-    // In-App Chat Functions
-    async function openInAppChat(appId, name, jobTitle, logo) {
-      CURRENT_CHAT_APP_ID = appId;
-      const nameEl = document.getElementById('chatRecipientName');
-      if (nameEl) nameEl.innerText = name || 'Alifeo';
-      const badgeEl = document.getElementById('chatJobBadge');
-      if (badgeEl) badgeEl.innerText = jobTitle || 'Direct Hiring';
-
-      const avatarEl = document.getElementById('chatAvatarInitial');
-      const avatarImg = document.getElementById('chatAvatarImg');
-      if (logo && avatarImg) {
-        avatarImg.src = logo;
-        avatarImg.style.display = 'block';
-        if (avatarEl) avatarEl.style.display = 'none';
-      } else {
-        if (avatarImg) avatarImg.style.display = 'none';
-        if (avatarEl) {
-          avatarEl.innerText = (name || 'A').charAt(0).toUpperCase();
-          avatarEl.style.display = 'block';
-        }
-      }
+    // In-App Chat Functions -> Routes to WhatsApp Full Screen View
+    async function openInAppChat(appId, name, jobTitle, logo, jobId) {
+      closeModal('jobDetailModal');
+      closeModal('inAppChatModal');
+      openInboxConversationDirect(appId, name, logo, jobTitle, jobId);
+    }
 
       openModal('inAppChatModal');
 
